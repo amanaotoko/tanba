@@ -16,6 +16,26 @@ function applySel() {
   document.querySelectorAll('#results .card').forEach(el => {
     el.classList.toggle('sel', sel.has(+el.dataset.id));
   });
+  updateStatus();
+}
+
+// Строка состояния как в проводнике: сколько всего, сколько выделено
+// и сколько это весит. Слова склоняются, «2 элементов» не бывает.
+function updateStatus() {
+  const total = res.total || 0;
+  $('stCount').textContent = `Элементов: ${num(total)}`;
+
+  const picked = res.files.filter(f => sel.has(f.id));
+  if (picked.length) {
+    const bytes = picked.reduce((s, f) => s + (f.size || 0), 0);
+    const word = plural(picked.length, 'элемент', 'элемента', 'элементов');
+    $('stSel').textContent =
+      `Выбрано: ${num(picked.length)} ${word}` + (bytes ? `, ${fmtSize(bytes)}` : '');
+  } else {
+    $('stSel').textContent = '';
+  }
+
+  $('stBytes').textContent = res.bytes ? fmtSize(res.bytes) : '';
 }
 
 // Сетка перерисовывается целиком, поэтому подсветку выделения возвращаем

@@ -55,7 +55,6 @@
       <button data-mode="and" title="Файл должен иметь все выбранные теги">И</button>
       <button data-mode="or" title="Файлу хватит любого из выбранных тегов">ИЛИ</button>
     </div>
-    <span class="mono dim" id="found"></span>
     <span class="grow"></span>
     <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор">
       <svg class="ic"><use href="#i-reset"></use></svg>
@@ -68,10 +67,11 @@
   </div>
 
   <footer class="status">
-    <span class="mono" id="stBytes"></span>
-    <span class="dim">Двойной клик по файлу открывает его в проводнике</span>
+    <span id="stCount"></span>
+    <span id="stSel"></span>
     <span class="grow"></span>
-    <span class="dim mono" id="stRoot"></span>
+    <span class="mono" id="stBytes"></span>
+    <span class="mono dim" id="stRoot"></span>
   </footer>
 
 </div>

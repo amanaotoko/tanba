@@ -106,9 +106,10 @@ function render() {
   renderPanel();
   renderResults();
 
-  $('found').textContent = `${num(res.total)} ${plural(res.total, 'файл', 'файла', 'файлов')}`;
-  $('stBytes').textContent = res.bytes ? fmtSize(res.bytes) + ' в отборе' : '';
   $('stRoot').textContent = facets.root || '';
+  // Строка состояния знает про выделение, а оно живёт в actions.js,
+  // который грузится следующим.
+  if (typeof updateStatus === 'function') updateStatus();
   for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === pick.mode);
 
   // Внутри каталога отбора нет, там только навигация. Прячем всё,
