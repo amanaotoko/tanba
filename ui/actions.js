@@ -29,8 +29,12 @@ function updateStatus() {
   if (picked.length) {
     const bytes = picked.reduce((s, f) => s + (f.size || 0), 0);
     const word = plural(picked.length, 'элемент', 'элемента', 'элементов');
+    // Глагол согласуется с существительным: «Выбран 1 элемент», но
+    // «Выбрано 2 элемента». Форму берём из самого слова, чтобы они
+    // не разъехались, если правило склонения когда-нибудь поправят.
+    const verb = word === 'элемент' ? 'Выбран' : 'Выбрано';
     $('stSel').textContent =
-      `Выбрано: ${num(picked.length)} ${word}` + (bytes ? `, ${fmtSize(bytes)}` : '');
+      `${verb} ${num(picked.length)} ${word}` + (bytes ? `, ${fmtSize(bytes)}` : '');
   } else {
     $('stSel').textContent = '';
   }
