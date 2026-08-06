@@ -1,0 +1,268 @@
+'use strict';
+
+// Выделение, контекстное меню и модалки библиотеки.
+// Живёт отдельно от library.js, но в той же области видимости: обработчики
+// вешаются делегированием на контейнер, поэтому перерисовка сетки их не рвёт.
+
+let sel = new Set();
+let anchor = null;
+
+const ids = () => [...sel];
+const byId = id => res.files.find(f => f.id === id);
+
+// ── Выделение ──────────────────────────────────────────────────────────
+
+function applySel() {
+  document.querySelectorAll('#results .card').forEach(el => {
+    el.classList.toggle('sel', sel.has(+el.dataset.id));
+  });
+}
+
+// Сетка перерисовывается целиком, поэтому подсветку выделения возвращаем
+// после каждой отрисовки, а не вешаем на элементы.
+const _renderResults = renderResults;
+renderResults = function () { _renderResults(); applySel(); };
+
+function pickCard(id, e) {
+  const order = res.files.map(f => f.id);
+  if (e.shiftKey && anchor !== null) {
+    const a = order.indexOf(anchor), b = order.indexOf(id);
+    if (a >= 0 && b >= 0) {
+      if (!e.ctrlKey) sel.clear();
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) sel.add(order[i]);
+    }
+  } else if (e.ctrlKey || e.metaKey) {
+    sel.has(id) ? sel.delete(id) : sel.add(id);
+    anchor = id;
+  } else {
+    const only = sel.size === 1 && sel.has(id);
+    sel.clear();
+    if (!only) sel.add(id);
+    anchor = id;
+  }
+  applySel();
+}
+
+$('results').addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  // Клик по чипу тега добавляет его в отбор, выделение тут ни при чём.
+  if (!card || e.target.closest('[data-add]')) return;
+  pickCard(+card.dataset.id, e);
+});
+
+// ── Контекстное меню ───────────────────────────────────────────────────
+
+let ctx = null;
+
+function closeCtx() { ctx?.remove(); ctx = null; }
+
+$('results').addEventListener('contextmenu', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  e.preventDefault();
+
+  const id = +card.dataset.id;
+  // Правый клик по невыделенному берёт его одного, по выделенному
+  // оставляет всю пачку: так же ведёт себя проводник.
+  if (!sel.has(id)) { sel.clear(); sel.add(id); anchor = id; applySel(); }
+
+  showCtx(e.clientX, e.clientY, byId(id));
+});
+
+function showCtx(x, y, file) {
+  closeCtx();
+  const many = sel.size > 1;
+  const isCat = file && file.kind === 'catalog';
+
+  const item = (icon, label, act, cls = '') =>
+    `<button data-act="${act}" class="${cls}">
+       <svg class="ic"><use href="#${icon}"></use></svg>${label}</button>`;
+
+  const rows = isCat
+    ? [item('i-folder', 'Открыть', 'enter'),
+       item('i-pencil', 'Переименовать', 'rename'),
+       item('i-tag', 'Настроить теги', 'tags'),
+       '<div class="line"></div>',
+       item('i-trash', 'Удалить каталог', 'delcat', 'danger')]
+    : [item('i-play', many ? `Открыть (${sel.size})` : 'Открыть', 'open'),
+       item('i-search', 'Показать в проводнике', 'reveal'),
+       item('i-pencil', 'Переименовать', 'rename'),
+       item('i-tag', many ? `Настроить теги (${sel.size})` : 'Настроить теги', 'tags'),
+       item('i-folder', 'В каталог', 'tocat'),
+       '<div class="line"></div>',
+       item('i-trash', many ? `Удалить (${sel.size})` : 'Удалить', 'del', 'danger')];
+
+  ctx = document.createElement('div');
+  ctx.className = 'ctx';
+  ctx.innerHTML = rows.join('');
+  document.body.appendChild(ctx);
+
+  // Меню не должно вылезать за окно: у нижнего края разворачиваем вверх.
+  const w = ctx.offsetWidth, h = ctx.offsetHeight;
+  ctx.style.left = Math.min(x, innerWidth - w - 8) + 'px';
+  ctx.style.top = (y + h > innerHeight - 8 ? Math.max(8, y - h) : y) + 'px';
+
+  ctx.querySelectorAll('[data-act]').forEach(b => {
+    b.onclick = ev => { ev.stopPropagation(); closeCtx(); runAct(b.dataset.act, file); };
+  });
+}
+
+addEventListener('click', closeCtx);
+addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); closeModal(); } });
+addEventListener('resize', closeCtx);
+
+// ── Действия ───────────────────────────────────────────────────────────
+
+async function runAct(act, file) {
+  try {
+    if (act === 'enter') return enterCatalog(file.id);
+    if (act === 'open') {
+      for (const id of ids()) await jsend('/api/files/open', 'POST', { id });
+      return;
+    }
+    if (act === 'reveal') return reveal(file.id);
+    if (act === 'rename') return renameModal(file);
+    if (act === 'tags') return tagsModal();
+    if (act === 'tocat') return toast('Выбор каталога делаю следующим');
+    if (act === 'del') return deleteModal();
+    if (act === 'delcat') return deleteCatalogModal(file);
+  } catch (e) {
+    toast('Не вышло: ' + e.message, 'err');
+  }
+}
+
+// ── Модалки ────────────────────────────────────────────────────────────
+
+let modal = null;
+
+function closeModal() { modal?.remove(); modal = null; }
+
+function openModal(html) {
+  closeModal();
+  modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `<div class="modal-box">${html}</div>`;
+  // Клик по затемнению закрывает, клик внутри окна нет.
+  modal.onclick = e => { if (e.target === modal) closeModal(); };
+  document.body.appendChild(modal);
+  return modal.querySelector('.modal-box');
+}
+
+function renameModal(file) {
+  const box = openModal(`
+    <h2>Переименовать</h2>
+    <p>Расширение остаётся прежним, менять его вручную не нужно.</p>
+    <input class="name" value="${esc(file.name.replace(/\.[^.]+$/, ''))}" spellcheck="false">
+    <div class="modal-acts">
+      <button class="btn" data-no>Отмена</button>
+      <button class="btn btn-primary" data-yes>Переименовать</button>
+    </div>`);
+
+  const input = box.querySelector('.name');
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const nm = input.value.trim();
+    if (!nm) return closeModal();
+    const url = file.kind === 'catalog' ? '/api/catalogs/' + file.id : '/api/files/rename';
+    file.kind === 'catalog'
+      ? await jsend(url, 'PATCH', { name: nm })
+      : await jsend(url, 'POST', { id: file.id, name: nm });
+    closeModal();
+    await load();
+    toast('Переименовано');
+  };
+
+  input.onkeydown = e => { if (e.key === 'Enter') save(); };
+  box.querySelector('[data-yes]').onclick = save;
+  box.querySelector('[data-no]').onclick = closeModal;
+}
+
+async function tagsModal() {
+  const list = ids();
+  if (!list.length) return;
+
+  const data = await jget('/api/files/tagstates?ids=' + list.join(','));
+  const box = openModal(`
+    <h2>Теги</h2>
+    <p>Выделено объектов: ${list.length}. Промежуточная галочка означает,
+       что тег стоит не у всех.</p>
+    <div class="modal-groups" id="mg"></div>
+    <div class="modal-acts"><button class="btn btn-primary" data-no>Готово</button></div>`);
+
+  const draw = st => {
+    box.querySelector('#mg').innerHTML = st.groups.map(g => `
+      <div class="group">
+        <h3 style="cursor:default">${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
+        ${g.tags.map(t => `
+          <button class="tag" data-tag="${t.id}" data-state="${t.state}">
+            <span class="box ${t.state}${g.isMulti ? '' : ' radio'}">
+              <svg class="ic"><use href="#${t.state === 'partial' ? 'i-minus' : 'i-check'}"></use></svg>
+            </span>
+            <span class="lbl">${esc(t.name)}</span>
+          </button>`).join('')}
+      </div>`).join('');
+
+    box.querySelectorAll('[data-tag]').forEach(el => {
+      el.onclick = async () => {
+        // Промежуточное состояние: первый клик ставит тег всем выделенным.
+        await jsend('/api/tag', 'POST',
+          { fileIds: list, tagId: +el.dataset.tag, on: el.dataset.state !== 'on' });
+        draw(await jget('/api/files/tagstates?ids=' + list.join(',')));
+        load();
+      };
+    });
+  };
+
+  draw(data);
+  box.querySelector('[data-no]').onclick = closeModal;
+}
+
+function deleteModal() {
+  const list = ids();
+  if (!list.length) return;
+  const one = list.length === 1 ? byId(list[0]) : null;
+
+  const box = openModal(`
+    <h2>${one ? `Удалить «${esc(one.name)}»?` : `Удалить ${list.length} ${plural(list.length, 'файл', 'файла', 'файлов')}?`}</h2>
+    <p>Уйдёт в корзину Windows, насовсем не стирается. Достанешь обратно,
+       и файл вернётся вместе со всеми тегами.</p>
+    <div class="modal-acts">
+      <button class="btn" data-no>Отмена</button>
+      <button class="btn btn-danger" data-yes>Удалить</button>
+    </div>`);
+
+  box.querySelector('[data-yes]').onclick = async () => {
+    const r = await jsend('/api/files/delete', 'POST', { ids: list });
+    closeModal();
+    sel.clear();
+    await load();
+    toast(r.errors?.length ? 'Ошибки: ' + r.errors.join('; ')
+                           : `Удалено в корзину: ${r.deleted}`,
+          r.errors?.length ? 'err' : '');
+  };
+  box.querySelector('[data-no]').onclick = closeModal;
+}
+
+function deleteCatalogModal(file) {
+  const box = openModal(`
+    <h2>Удалить каталог «${esc(file.name)}»?</h2>
+    <p>Файлы остаются на диске и в библиотеке, их теги сохраняются.
+       Пропадёт только связь: ${file.count || 0}
+       ${plural(file.count || 0, 'объект перестанет', 'объекта перестанут', 'объектов перестанут')}
+       лежать в этом каталоге.</p>
+    <div class="modal-acts">
+      <button class="btn" data-no>Отмена</button>
+      <button class="btn btn-danger" data-yes>Удалить связь</button>
+    </div>`);
+
+  box.querySelector('[data-yes]').onclick = async () => {
+    await jsend('/api/catalogs/' + file.id, 'DELETE');
+    closeModal();
+    sel.clear();
+    await load();
+    toast('Каталог удалён, файлы на месте');
+  };
+  box.querySelector('[data-no]').onclick = closeModal;
+}

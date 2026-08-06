@@ -154,6 +154,7 @@ app.MapPost("/api/rescan", () =>
 
 app.MapLibrary(repo, cfg);
 app.MapCatalogs(repo);
+app.MapFiles(repo, cfg, thumbs);
 
 // ── Превью ───────────────────────────────────────────────────────────────
 // Эскиз рисует сама Windows руками Corel и Adobe, см. Shell/Thumbs.cs.

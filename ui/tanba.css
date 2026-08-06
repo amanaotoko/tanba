@@ -73,6 +73,8 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 .btn .ic{font-size:15px}
 .btn-primary{background:var(--a2);color:var(--ink);font-weight:600}
 .btn-primary:hover{background:var(--a2);filter:brightness(1.06)}
+.btn-danger{background:var(--err);color:var(--ink);font-weight:600}
+.btn-danger:hover{background:var(--err);filter:brightness(1.06)}
 .btn-ghost{background:transparent;color:var(--t2)}
 .btn-ghost:hover{background:var(--s2);color:var(--t1)}
 .btn-icon{width:34px;height:34px;padding:0;justify-content:center}
