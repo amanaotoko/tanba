@@ -49,8 +49,12 @@ a.btn{text-decoration:none}
 .mini:disabled:hover{background:var(--s3);color:var(--t2)}
 
 /* Строка дерева стоит просторнее строки фильтра: по ней ходят, а не
-   пробегают глазами, и попасть мышью надо с первого раза */
-.tag-tree{padding-top:10px;padding-bottom:10px}
+   пробегают глазами, и попасть мышью надо с первого раза.
+   Базовый отступ задаётся здесь, --pad. Код проставляет только глубину
+   вложенности через --depth и в сами отступы не лезет. */
+.tag-tree{--pad:12px;
+  padding:10px var(--pad);
+  padding-left:calc(var(--pad) + var(--depth, 0) * 16px)}
 
 /* Где я сейчас в дереве каталога */
 .tag-here{background:var(--s3)}

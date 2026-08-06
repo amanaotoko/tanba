@@ -121,7 +121,12 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 .group.closed > *:not(h3){display:none}
 .group .single{font-weight:400;color:var(--t3)}
 
-.tag{display:flex;align-items:center;gap:9px;width:100%;padding:4px 6px;
+/* Базовый отступ строки задаётся здесь, --pad. Код проставляет только
+   глубину вложенности через --depth и в сами отступы не лезет. */
+.tag{display:flex;align-items:center;gap:9px;width:100%;
+  --pad:6px;
+  padding:4px var(--pad);
+  padding-left:calc(var(--pad) + var(--depth, 0) * 18px);
   border-radius:7px;text-align:left}
 .tag:hover{background:var(--s3)}
 .tag .lbl{font-size:13px;line-height:18px;color:var(--t1);flex:1;

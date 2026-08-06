@@ -173,7 +173,7 @@ function renderTree(node, cur, depth = 0) {
   const on = node.id === cur;
   return `
     <button class="tag tag-tree${on ? ' tag-here' : ''}" data-goto="${node.id}"
-            style="padding-left:${6 + depth * 16}px">
+            style="--depth:${depth}">
       <svg class="ic"><use href="#i-folder"></use></svg>
       <span class="lbl">${esc(node.name)}</span>
     </button>` + (node.children || []).map(k => renderTree(k, cur, depth + 1)).join('');
@@ -209,7 +209,7 @@ function renderPanel() {
         const on = pick.tags.includes(t.id);
         return `
         <button class="tag${t.count ? '' : ' tag-zero'}" data-tag="${t.id}"
-                style="padding-left:${6 + d * 18}px">
+                style="--depth:${d}">
           <span class="box${on ? ' on' : ''}${g.isMulti ? '' : ' radio'}">
             <svg class="ic"><use href="#i-check"></use></svg>
           </span>
