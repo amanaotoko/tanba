@@ -13,6 +13,25 @@
 const pick = { tags: [], exts: [], show: ['files', 'catalogs'],
                mode: 'and', text: '', from: '', to: '', dates: 'any', cat: null };
 let catInfo = null;   // имя, путь наверх и дерево текущего каталога
+
+// Свёрнутые группы переживают перезапуск: панель длинная, и каждый раз
+// сворачивать одно и то же было бы издевательством.
+const collapsed = new Set(JSON.parse(localStorage.getItem('tanba-collapsed') || '[]'));
+let dateOpen = false;
+
+function toggleGroup(name) {
+  collapsed.has(name) ? collapsed.delete(name) : collapsed.add(name);
+  localStorage.setItem('tanba-collapsed', JSON.stringify([...collapsed]));
+  renderPanel();
+}
+
+// Заголовок группы кликабельный, шеврон показывает состояние.
+const head = (name, extra = '') =>
+  `<h3 data-collapse="${esc(name)}">${esc(name)}${extra}` +
+  `<svg class="ic chev"><use href="#i-chev"></use></svg></h3>`;
+
+const grp = (name, inner, extra = '') =>
+  `<div class="group${collapsed.has(name) ? ' closed' : ''}">${head(name, extra)}${inner}</div>`;
 const PAGE = 200;
 
 let res = { files: [], total: 0, bytes: 0 };
@@ -91,15 +110,14 @@ function render() {
   $('stBytes').textContent = res.bytes ? fmtSize(res.bytes) + ' в отборе' : '';
   $('stRoot').textContent = facets.root || '';
   for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === pick.mode);
-  for (const b of $('dateField').children) b.classList.toggle('on', b.dataset.dates === pick.dates);
   $('save').disabled = !pick.tags.length && !pick.exts.length;
 
   // Внутри каталога отбора нет, там только навигация. Прячем всё,
   // что относится к поиску, включая строку по имени в шапке.
+  // Дата уехала в панель, а панель внутри каталога и так подменяется деревом.
   const inside = !!pick.cat;
   document.querySelector('.find').hidden = inside;
   for (const id of ['mode', 'save', 'reset']) $(id).hidden = inside;
-  document.querySelector('.dates').hidden = inside;
 }
 
 // Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
@@ -187,9 +205,7 @@ function renderPanel() {
 
   // Все группы устроены одинаково. Отличается только группа
   // с единственным выбором: там радиокнопки вместо флажков.
-  const groups = facets.groups.map(g => `
-    <div class="group">
-      <h3>${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
+  const groups = facets.groups.map(g => grp(g.name, `
       ${nest(g.tags).map(({ t, d }) => {
         const on = pick.tags.includes(t.id);
         return `
@@ -201,15 +217,13 @@ function renderPanel() {
           <span class="lbl">${esc(t.name)}</span>
           <span class="n mono">${t.count ? num(t.count) : ''}</span>
         </button>`;
-      }).join('')}
-    </div>`).join('');
+      }).join('')}`,
+      g.isMulti ? '' : ' <span class="single">один тег</span>')).join('');
 
   // Формат рисуется тем же блоком, что и группы тегов: снаружи он от них
   // ничем не отличается, только значения берутся из расширений файлов.
   const fmt = facets.formats;
-  const formatBlock = fmt && fmt.items && fmt.items.length ? `
-    <div class="group">
-      <h3>${esc(fmt.name)}</h3>
+  const formatBlock = fmt && fmt.items && fmt.items.length ? grp(fmt.name, `
       ${fmt.items.map(it => {
         const on = pick.exts.includes(it.ext);
         return `
@@ -220,15 +234,12 @@ function renderPanel() {
           <span class="lbl">${esc(it.name)}</span>
           <span class="n mono">${it.count ? num(it.count) : ''}</span>
         </button>`;
-      }).join('')}
-    </div>` : '';
+      }).join('')}`) : '';
 
   // Вид объекта идёт первой группой: она отвечает на вопрос «что вообще
   // показывать», а формат и теги уточняют уже внутри этого.
   const k = facets.kinds;
-  const showBlock = k ? `
-    <div class="group">
-      <h3>${esc(k.name)}</h3>
+  const showBlock = k ? grp(k.name, `
       ${k.items.map(it => {
         const on = pick.show.includes(it.key);
         return `
@@ -239,10 +250,43 @@ function renderPanel() {
           <span class="lbl">${esc(it.name)}</span>
           <span class="n mono">${it.count ? num(it.count) : ''}</span>
         </button>`;
-      }).join('')}
-    </div>` : '';
+      }).join('')}`) : '';
 
-  $('panel').innerHTML = savedBlock + showBlock + formatBlock + groups;
+  // Дата не тег: она непрерывна, поэтому диапазон, а не список значений.
+  // Выпадающий список взят из кита, раздел «Поиск и фильтры».
+  const DATES = { any: 'Любая дата', created: 'Создан', modified: 'Изменён' };
+  const dateBlock = grp('Дата', `
+      <div class="dd">
+        <button class="dd-btn" id="ddDate">
+          <svg class="ic"><use href="#i-calendar"></use></svg>
+          <span>${DATES[pick.dates]}</span>
+          <svg class="ic chev"><use href="#i-chev"></use></svg>
+        </button>
+        ${dateOpen ? `<div class="dd-menu">${Object.keys(DATES).map(key => `
+          <button data-dates="${key}">${DATES[key]}
+            ${key === pick.dates ? '<svg class="ic"><use href="#i-check"></use></svg>' : ''}
+          </button>`).join('')}</div>` : ''}
+      </div>
+      <div class="range">
+        <input type="date" id="from" value="${pick.from}" title="с этой даты">
+        <span class="dash">до</span>
+        <input type="date" id="to" value="${pick.to}" title="по эту дату">
+      </div>`);
+
+  $('panel').innerHTML = savedBlock + showBlock + formatBlock + dateBlock + groups;
+
+  $('panel').querySelectorAll('[data-collapse]').forEach(el => {
+    el.onclick = () => toggleGroup(el.dataset.collapse);
+  });
+  $('ddDate').onclick = () => { dateOpen = !dateOpen; renderPanel(); };
+  $('panel').querySelectorAll('[data-dates]').forEach(el => {
+    el.onclick = () => {
+      pick.dates = el.dataset.dates;
+      dateOpen = false;
+      (pick.from || pick.to) ? load() : renderPanel();
+    };
+  });
+  for (const id of ['from', 'to']) $(id).onchange = () => { pick[id] = $(id).value; load(); };
 
   $('panel').querySelectorAll('[data-show]').forEach(el => {
     el.onclick = () => toggleShow(el.dataset.show);
@@ -375,19 +419,6 @@ $('mode').onclick = e => {
   load();
 };
 
-// Какую дату мерить. Переключать имеет смысл только когда диапазон задан,
-// но кнопки не блокируем: порядок «сначала поле, потом даты» тоже нормальный.
-$('dateField').onclick = e => {
-  const b = e.target.closest('[data-dates]');
-  if (!b || b.dataset.dates === pick.dates) return;
-  pick.dates = b.dataset.dates;
-  if (pick.from || pick.to) load(); else render();
-};
-
-for (const id of ['from', 'to']) {
-  $(id).onchange = () => { pick[id] = $(id).value; load(); };
-}
-
 $('reset').onclick = () => {
   pick.tags = [];
   pick.exts = [];
@@ -398,8 +429,7 @@ $('reset').onclick = () => {
   pick.cat = null;
   catInfo = null;
   $('q').value = '';
-  $('from').value = '';
-  $('to').value = '';
+  // Поля дат живут в панели и перерисуются сами вместе с ней.
   load();
 };
 

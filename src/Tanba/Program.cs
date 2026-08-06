@@ -43,7 +43,15 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 var app = builder.Build();
 app.UseDefaultFiles();
-app.UseStaticFiles();
+
+// Кэш статики выключен намеренно. Файлы лежат на этой же машине, экономить
+// нечего, а WebView2 держит свой кэш между запусками: правка стилей уезжала
+// в него и окно показывало вчерашнюю вёрстку, хотя в браузере всё верно.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate",
+});
 
 // ── Состояние экрана разбора ─────────────────────────────────────────────
 

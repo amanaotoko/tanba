@@ -79,15 +79,25 @@ function renderFiles() {
   });
 }
 
+// Свёрнутые группы переживают перезапуск и общие с библиотекой:
+// это одна и та же панель, незачем сворачивать «Организацию» дважды.
+const collapsed = new Set(JSON.parse(localStorage.getItem('tanba-collapsed') || '[]'));
+
+function toggleGroup(name) {
+  collapsed.has(name) ? collapsed.delete(name) : collapsed.add(name);
+  localStorage.setItem('tanba-collapsed', JSON.stringify([...collapsed]));
+  renderSide();
+}
+
 function renderSide() {
   const n = sel.size;
-  const head = n
+  const top = n
     ? `<div class="dim">Выделено: ${n} ${plural(n, 'файл', 'файла', 'файлов')}</div>`
     : `<div class="dim">Выдели файлы, чтобы вешать теги</div>`;
 
-  $('side').innerHTML = head + state.groups.map(g => `
-    <div class="group" data-group="${g.id}">
-      <h3>${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
+  $('side').innerHTML = top + state.groups.map(g => `
+    <div class="group${collapsed.has(g.name) ? ' closed' : ''}" data-group="${g.id}">
+      <h3 data-collapse="${esc(g.name)}">${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}<svg class="ic chev"><use href="#i-chev"></use></svg></h3>
       ${g.tags.map(t => `
         <button class="tag" data-tag="${t.id}" data-state="${t.state}" ${n ? '' : 'disabled'}>
           <span class="box ${t.state}${g.isMulti ? '' : ' radio'}">
@@ -101,6 +111,9 @@ function renderSide() {
       </div>
     </div>`).join('');
 
+  $('side').querySelectorAll('[data-collapse]').forEach(el => {
+    el.onclick = () => toggleGroup(el.dataset.collapse);
+  });
   $('side').querySelectorAll('.tag').forEach(el => {
     el.onclick = () => toggleTag(+el.dataset.tag, el.dataset.state);
   });
