@@ -173,6 +173,10 @@ a.btn{text-decoration:none}
 
 .more{display:flex;justify-content:center;padding:14px 0 4px}
 
+/* Рамка выделения. Заливка лавандой из токенов, та же, что у фокуса. */
+.marquee{position:fixed;z-index:30;pointer-events:none;border-radius:2px;
+  border:1px solid var(--a1);background:var(--a1s)}
+
 /* ── Контекстное меню ───────────────────────────────────────────────── */
 
 .ctx{position:fixed;z-index:50;min-width:210px;padding:5px;background:var(--s1);

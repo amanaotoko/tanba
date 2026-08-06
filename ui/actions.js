@@ -74,6 +74,93 @@ $('results').addEventListener('click', e => {
   pickCard(+card.dataset.id, e);
 });
 
+// ── Рамка выделения ────────────────────────────────────────────────────
+// Зажал на пустом месте и обвёл. Держим точки в координатах содержимого,
+// а не окна: иначе при автопрокрутке рамка уползает от того, что обводишь.
+
+(function marquee() {
+  const box = $('results');
+  let band = null, base = null, from = null, scroller = 0;
+
+  const point = e => ({
+    x: e.clientX - box.getBoundingClientRect().left + box.scrollLeft,
+    y: e.clientY - box.getBoundingClientRect().top + box.scrollTop,
+  });
+
+  function draw(to) {
+    const r = box.getBoundingClientRect();
+    const x1 = Math.min(from.x, to.x), x2 = Math.max(from.x, to.x);
+    const y1 = Math.min(from.y, to.y), y2 = Math.max(from.y, to.y);
+
+    band.style.left = (r.left + x1 - box.scrollLeft) + 'px';
+    band.style.top = (r.top + y1 - box.scrollTop) + 'px';
+    band.style.width = (x2 - x1) + 'px';
+    band.style.height = (y2 - y1) + 'px';
+
+    // Пересечение считаем в координатах окна: карточки и рамка там оба.
+    const bb = band.getBoundingClientRect();
+    sel.clear();
+    base.forEach(id => sel.add(id));
+    document.querySelectorAll('#results .card').forEach(el => {
+      const c = el.getBoundingClientRect();
+      const hit = c.left < bb.right && c.right > bb.left && c.top < bb.bottom && c.bottom > bb.top;
+      if (hit) sel.add(+el.dataset.id);
+    });
+    applySel();
+  }
+
+  box.addEventListener('mousedown', e => {
+    // Только левой, только по пустому месту: на карточке живёт перетаскивание.
+    if (e.button !== 0 || e.target.closest('.card')) return;
+    e.preventDefault();
+
+    from = point(e);
+    base = (e.ctrlKey || e.metaKey || e.shiftKey) ? [...sel] : [];
+    let started = false;
+    let last = e;
+
+    const move = ev => {
+      last = ev;
+      // Порог, чтобы обычный клик по пустому месту не считался рамкой.
+      if (!started) {
+        const p = point(ev);
+        if (Math.abs(p.x - from.x) < 4 && Math.abs(p.y - from.y) < 4) return;
+        started = true;
+        band = document.createElement('div');
+        band.className = 'marquee';
+        document.body.appendChild(band);
+      }
+      draw(point(ev));
+    };
+
+    // Тянем за нижний край: список прокручивается сам, как в проводнике.
+    scroller = setInterval(() => {
+      if (!started) return;
+      const r = box.getBoundingClientRect();
+      const edge = 40;
+      let dy = 0;
+      if (last.clientY > r.bottom - edge) dy = last.clientY - (r.bottom - edge);
+      else if (last.clientY < r.top + edge) dy = last.clientY - (r.top + edge);
+      if (!dy) return;
+      box.scrollTop += Math.sign(dy) * Math.min(24, Math.abs(dy) / 2);
+      draw(point(last));
+    }, 16);
+
+    const up = () => {
+      clearInterval(scroller);
+      removeEventListener('mousemove', move);
+      removeEventListener('mouseup', up);
+      band?.remove();
+      band = null;
+      // Клик по пустому месту без движения снимает выделение.
+      if (!started && !base.length) { sel.clear(); applySel(); }
+    };
+
+    addEventListener('mousemove', move);
+    addEventListener('mouseup', up);
+  });
+})();
+
 // ── Контекстное меню ───────────────────────────────────────────────────
 
 let ctx = null;
