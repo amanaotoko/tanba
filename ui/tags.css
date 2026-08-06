@@ -1,0 +1,56 @@
+/* Редактор тегов. Только то, чего нет в tanba.css и library.css. */
+
+.app.tags{grid-template-rows:48px 1fr 28px}
+
+/* Колонками, потому что групп немного, а список тегов в каждой длинный:
+   в один столбец пришлось бы всё время прокручивать. */
+.editor{overflow:auto;padding:16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:12px;align-content:start}
+
+.gcard{background:var(--s1);border-radius:12px;padding:14px}
+.gcard.new{background:transparent;border:1px dashed var(--bd2)}
+
+/* Имя группы правится на месте, поэтому это поле, а не заголовок */
+.gname{width:100%;margin:0 0 4px;padding:2px 6px;margin-left:-6px;
+  background:none;border:none;outline:none;border-radius:7px;
+  font:600 15px/22px inherit;color:var(--t1)}
+.gname:hover{background:var(--s2)}
+.gname:focus{background:var(--s2);outline:1.5px solid var(--a1)}
+
+.gflags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.flag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;
+  border-radius:999px;background:var(--s3);color:var(--t2);font-size:12px;line-height:1}
+.flag:hover{background:var(--s4);color:var(--t1)}
+.flag.on{background:var(--t1);color:var(--bg);font-weight:600}
+
+/* Строка тега: имя правится на месте, кнопки проявляются при наведении */
+.trow{display:flex;align-items:center;gap:4px;border-radius:7px}
+.trow:hover{background:var(--s2)}
+.tname{flex:1;min-width:0;padding:5px 7px;background:none;border:none;outline:none;
+  border-radius:7px;font-size:13px;line-height:18px;color:var(--t1)}
+.tname:focus{background:var(--s3);outline:1.5px solid var(--a1)}
+.tcount{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px;color:var(--t3);padding:0 2px}
+.tacts{display:flex;gap:2px;opacity:0}
+.trow:hover .tacts,.trow:focus-within .tacts{opacity:1}
+.tacts button{display:flex;padding:5px;border-radius:6px;color:var(--t3)}
+.tacts button:hover{background:var(--s3);color:var(--t1)}
+.tacts .del:hover{color:var(--err)}
+.tacts .ic{font-size:14px}
+
+.tnew{display:flex;align-items:center;gap:7px;margin-top:6px;padding:0 7px}
+.tnew input{flex:1;min-width:0;height:28px;padding:0 9px;border-radius:7px;
+  background:var(--s2);border:none;outline:none;font-size:13px;color:var(--t1)}
+.tnew input::placeholder{color:var(--t3)}
+.tnew input:focus{outline:1.5px solid var(--a1)}
+
+.gdel{display:flex;justify-content:flex-end;margin-top:10px}
+
+/* Список выбора в модалке объединения */
+.pick-list{max-height:40vh;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:1px}
+.pick-row{display:flex;align-items:baseline;gap:8px;width:100%;padding:6px 9px;
+  border-radius:7px;text-align:left}
+.pick-row:hover{background:var(--s2)}
+.pick-row .nm{flex:1;min-width:0;font-size:13px;line-height:18px;color:var(--t1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-row .gr{font-size:11px;line-height:15px;color:var(--t3)}
