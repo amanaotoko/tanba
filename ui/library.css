@@ -30,9 +30,11 @@ a.btn{text-decoration:none}
 .pill .x:hover{opacity:1;background:rgba(0,0,0,.14)}
 .pill .ic{font-size:13px;stroke-width:2.25}
 
-.pill-add{background:var(--s3);color:var(--t2);font-weight:400;font-size:12px;padding:0 10px;gap:5px}
+/* Только знак, без подписи: рядом всегда стоят сами теги, и что делает
+   плюс, объяснять нечем */
+.pill-add{width:26px;padding:0;justify-content:center;background:var(--s3);color:var(--t2)}
 .pill-add:hover{background:var(--s4);color:var(--t1)}
-.pill-add .ic{font-size:12px}
+.pill-add .ic{font-size:14px}
 
 .seg{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--s3)}
 .seg button{height:22px;padding:0 11px;border-radius:999px;font-size:12px;line-height:1;color:var(--t2)}
@@ -45,6 +47,9 @@ a.btn{text-decoration:none}
 .mini .ic{font-size:12px}
 .mini-ghost{background:transparent;color:var(--t3)}
 .mini-ghost:hover{background:var(--s2)}
+/* Сброс без подписи: круглая кнопка со стрелкой в круг */
+.mini-icon{width:24px;padding:0;justify-content:center;border-radius:999px}
+.mini-icon .ic{font-size:14px}
 .mini:disabled{opacity:.4;cursor:default}
 .mini:disabled:hover{background:var(--s3);color:var(--t2)}
 

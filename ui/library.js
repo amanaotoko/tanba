@@ -116,7 +116,13 @@ function render() {
   // Дата уехала в панель, а панель внутри каталога и так подменяется деревом.
   const inside = !!pick.cat;
   document.querySelector('.find').hidden = inside;
-  for (const id of ['mode', 'reset']) $(id).hidden = inside;
+  $('mode').hidden = inside;
+
+  // Сброс появляется только когда есть что сбрасывать: иначе это кнопка,
+  // которая ничего не делает, и глаз к ней привыкает как к украшению.
+  const dirty = pick.tags.length || pick.exts.length || pick.text ||
+                pick.from || pick.to || pick.show.length === 1;
+  $('reset').hidden = inside || !dirty;
 }
 
 // Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
@@ -153,7 +159,8 @@ function renderPicked() {
     + pick.exts.map(e => `
     <span class="pill">${esc(e)}<button class="x" data-dropext="${esc(e)}" title="Убрать формат">
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
-    + `<button class="pill pill-add" id="add"><svg class="ic"><use href="#i-plus"></use></svg>тег</button>`;
+    + `<button class="pill pill-add" id="add" title="Добавить тег в отбор">
+         <svg class="ic"><use href="#i-plus"></use></svg></button>`;
 
   box.querySelectorAll('[data-drop]').forEach(el => {
     el.onclick = () => toggleTag(+el.dataset.drop);
