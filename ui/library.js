@@ -277,7 +277,19 @@ function renderPanel() {
   $('panel').querySelectorAll('[data-collapse]').forEach(el => {
     el.onclick = () => toggleGroup(el.dataset.collapse);
   });
-  $('ddDate').onclick = () => { dateOpen = !dateOpen; renderPanel(); };
+  $('ddDate').onclick = e => { e.stopPropagation(); dateOpen = !dateOpen; renderPanel(); };
+
+  // Меню вынуто из потока, поэтому место ему считаем от кнопки.
+  // Если снизу не помещается, разворачиваем вверх.
+  const menu = $('panel').querySelector('.dd-menu');
+  if (menu) {
+    const b = $('ddDate').getBoundingClientRect();
+    menu.style.left = b.left + 'px';
+    menu.style.width = b.width + 'px';
+    const below = innerHeight - b.bottom;
+    if (below < menu.offsetHeight + 12) menu.style.top = (b.top - menu.offsetHeight - 6) + 'px';
+    else menu.style.top = (b.bottom + 6) + 'px';
+  }
   $('panel').querySelectorAll('[data-dates]').forEach(el => {
     el.onclick = () => {
       pick.dates = el.dataset.dates;
@@ -396,6 +408,17 @@ function toggleTag(id) {
 // Снять последнюю галочку нельзя: пустая выдача никому не нужна.
 // Вместо этого включается вторая, то есть ведёт себя как радиокнопка,
 // но обе держать тоже можно.
+// Клик мимо и Escape закрывают меню: висящее поверх окно должно
+// закрываться тем же жестом, что и любое другое.
+document.addEventListener('click', () => {
+  if (!dateOpen) return;
+  dateOpen = false;
+  renderPanel();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && dateOpen) { dateOpen = false; renderPanel(); }
+});
+
 function toggleShow(key) {
   const other = key === 'files' ? 'catalogs' : 'files';
   if (!pick.show.includes(key)) pick.show = [...pick.show, key];
