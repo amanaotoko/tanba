@@ -19,9 +19,26 @@ a.btn{text-decoration:none}
 
 /* ── Строка отбора ──────────────────────────────────────────────────── */
 
-.pick{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px}
-.pick-word{color:var(--t3);font-size:13px;line-height:18px}
-.pick-tags{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+/* Ничего не переносится: справа стоят кнопки постоянной ширины, слева
+   прокручиваемое поле. Сколько бы тегов ни набралось, строка одна. */
+.pick{display:flex;align-items:center;gap:8px;padding:10px 16px;min-width:0}
+.pick > :not(.pick-tags){flex:none}
+
+/* Поле отбора того же цвета, что И/ИЛИ: вся левая часть читается как одно
+   место «вот что я ищу», а не как чипы, рассыпанные по пустому фону. */
+.pick-tags{flex:1;min-width:0;display:flex;align-items:center;gap:6px;
+  height:34px;padding:0 10px;border-radius:999px;background:var(--s3);
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none}
+.pick-tags::-webkit-scrollbar{display:none}
+.pick-tags > *{flex:none}
+
+/* Ползунка нет, поэтому край растворяется: иначе десятый тег просто
+   не существует для человека, он решит, что их пять. */
+.pick-tags.fade-r{mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+.pick-tags.fade-l{mask-image:linear-gradient(to left,#000 calc(100% - 28px),transparent)}
+.pick-tags.fade-l.fade-r{mask-image:linear-gradient(to right,transparent,#000 28px,
+  #000 calc(100% - 28px),transparent)}
 
 /* Выбранный тег показан инверсией: тёмный текст на светлой плашке */
 .pill{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 5px 0 10px;

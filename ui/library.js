@@ -116,14 +116,17 @@ function render() {
   // что относится к поиску, включая строку по имени в шапке.
   // Дата уехала в панель, а панель внутри каталога и так подменяется деревом.
   const inside = !!pick.cat;
-  document.querySelector('.find').hidden = inside;
   $('mode').hidden = inside;
 
   // Сброс появляется только когда есть что сбрасывать: иначе это кнопка,
   // которая ничего не делает, и глаз к ней привыкает как к украшению.
+  // Сброс не исчезает, а гаснет: пропадающая кнопка меняет ширину строки,
+  // и всё остальное дёргается при каждом теге.
   const dirty = pick.tags.length || pick.exts.length || pick.text ||
                 pick.from || pick.to || pick.show.length === 1;
-  $('reset').hidden = inside || !dirty;
+  $('reset').disabled = !dirty;
+  for (const id of ['reset', 'add', 'q']) $(id).hidden = inside;
+  document.querySelector('.find').hidden = inside;
 }
 
 // Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
@@ -159,9 +162,7 @@ function renderPicked() {
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
     + pick.exts.map(e => `
     <span class="pill">${esc(e)}<button class="x" data-dropext="${esc(e)}" title="Убрать формат">
-      <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
-    + `<button class="pill pill-add" id="add" title="Добавить тег в отбор">
-         <svg class="ic"><use href="#i-plus"></use></svg></button>`;
+      <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('');
 
   box.querySelectorAll('[data-drop]').forEach(el => {
     el.onclick = () => toggleTag(+el.dataset.drop);
@@ -172,7 +173,16 @@ function renderPicked() {
   box.querySelectorAll('[data-goto]').forEach(el => {
     el.onclick = e => { e.stopPropagation(); enterCatalog(+el.dataset.goto || null); };
   });
-  $('add').onclick = () => openPop($('add'));
+  fadeEdges();
+}
+
+// Край растворяется только когда есть что прокручивать, и с той стороны,
+// где ещё осталось содержимое.
+function fadeEdges() {
+  const box = $('picked');
+  const more = box.scrollWidth - box.clientWidth;
+  box.classList.toggle('fade-r', more > 1 && box.scrollLeft < more - 1);
+  box.classList.toggle('fade-l', more > 1 && box.scrollLeft > 1);
 }
 
 // Внутри каталога панель отдаётся под дерево целиком. Два честных режима:
@@ -441,6 +451,19 @@ function toggleExt(ext) {
     : [...pick.exts, ext];
   load();
 }
+
+$('add').onclick = e => { e.stopPropagation(); openPop($('add')); };
+
+// Колесо крутит поле отбора вбок: ползунка нет, а прокрутка нужна.
+$('picked').addEventListener('wheel', e => {
+  const box = $('picked');
+  if (box.scrollWidth <= box.clientWidth) return;
+  e.preventDefault();
+  box.scrollLeft += e.deltaY || e.deltaX;
+  fadeEdges();
+}, { passive: false });
+$('picked').addEventListener('scroll', fadeEdges);
+addEventListener('resize', fadeEdges);
 
 $('mode').onclick = e => {
   const b = e.target.closest('[data-mode]');

@@ -38,10 +38,6 @@
     <span class="sep"></span>
     <span class="muted">Библиотека</span>
     <span class="grow"></span>
-    <label class="find">
-      <svg class="ic"><use href="#i-search"></use></svg>
-      <input id="q" placeholder="имя файла" spellcheck="false">
-    </label>
     <a class="btn btn-ghost" href="index.html">Разбор</a>
     <button class="btn btn-ghost btn-icon" id="theme" title="Светлая или тёмная тема">
       <svg class="ic"><use href="#i-sun"></use></svg>
@@ -51,14 +47,20 @@
   <!-- Строка отбора. Это запрос, а не путь: теги равноправны, порядок ничего не значит. -->
   <div class="pick">
     <div class="pick-tags" id="picked"></div>
+    <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор">
+      <svg class="ic"><use href="#i-reset"></use></svg>
+    </button>
+    <button class="pill pill-add" id="add" title="Добавить тег в отбор">
+      <svg class="ic"><use href="#i-plus"></use></svg>
+    </button>
     <div class="seg" id="mode">
       <button data-mode="and" title="Файл должен иметь все выбранные теги">И</button>
       <button data-mode="or" title="Файлу хватит любого из выбранных тегов">ИЛИ</button>
     </div>
-    <span class="grow"></span>
-    <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор">
-      <svg class="ic"><use href="#i-reset"></use></svg>
-    </button>
+    <label class="find">
+      <svg class="ic"><use href="#i-search"></use></svg>
+      <input id="q" placeholder="имя файла" spellcheck="false">
+    </label>
   </div>
 
   <div class="main">
