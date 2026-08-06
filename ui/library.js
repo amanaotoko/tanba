@@ -110,14 +110,13 @@ function render() {
   $('stBytes').textContent = res.bytes ? fmtSize(res.bytes) + ' в отборе' : '';
   $('stRoot').textContent = facets.root || '';
   for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === pick.mode);
-  $('save').disabled = !pick.tags.length && !pick.exts.length;
 
   // Внутри каталога отбора нет, там только навигация. Прячем всё,
   // что относится к поиску, включая строку по имени в шапке.
   // Дата уехала в панель, а панель внутри каталога и так подменяется деревом.
   const inside = !!pick.cat;
   document.querySelector('.find').hidden = inside;
-  for (const id of ['mode', 'save', 'reset']) $(id).hidden = inside;
+  for (const id of ['mode', 'reset']) $(id).hidden = inside;
 }
 
 // Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
@@ -446,36 +445,8 @@ async function reveal(id) {
 }
 
 // ── Сохранённые отборы ─────────────────────────────────────────────────
-
-$('save').onclick = () => {
-  $('save').hidden = true;
-  $('saveName').hidden = false;
-  $('saveName').value = [...pick.tags.map(id => name(id)), ...pick.exts].join(', ');
-  $('saveName').focus();
-  $('saveName').select();
-};
-
-$('saveName').onkeydown = async e => {
-  if (e.key === 'Escape') { closeSaveName(); return; }
-  if (e.key !== 'Enter') return;
-  const nm = $('saveName').value.trim();
-  if (!nm) { closeSaveName(); return; }
-  try {
-    await jsend('/api/library/saved', 'POST',
-      { name: nm, mode: pick.mode, tagIds: pick.tags, exts: pick.exts });
-    closeSaveName();
-    await loadSaved();
-    toast(`Отбор «${nm}» сохранён`);
-  } catch (err) {
-    toast('Не сохранилось: ' + err.message, 'err');
-  }
-};
-$('saveName').onblur = () => closeSaveName();
-
-function closeSaveName() {
-  $('saveName').hidden = true;
-  $('save').hidden = false;
-}
+// Кнопка сохранения убрана из шапки. Уже сохранённые отборы применяются
+// и удаляются из панели, но завести новый из интерфейса сейчас нельзя.
 
 function applySaved(id) {
   const s = saved.find(x => x.id === id);

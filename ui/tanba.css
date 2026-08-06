@@ -113,7 +113,7 @@ a.btn.btn-ghost:hover{color:var(--t1)}
    остальные группы за пределы экрана. Состояние живёт между запусками. */
 .group h3{display:flex;align-items:center;gap:6px;width:100%;margin:0 0 8px;padding:0;
   background:none;border:none;text-align:left;cursor:pointer;
-  font-size:11px;line-height:14px;font-weight:600;color:var(--t3)}
+  font-size:13px;line-height:18px;font-weight:600;color:var(--t2)}
 .group h3:hover{color:var(--t2)}
 .group h3 .chev{margin-left:auto;font-size:14px;transition:transform .12s}
 .group.closed h3{margin-bottom:0}
