@@ -1,0 +1,131 @@
+/* Библиотека. Только то, чего нет в tanba.css:
+   строка отбора, поиск по имени, сохранённые отборы, выбор тега. */
+
+[hidden]{display:none !important}
+
+/* Шапка, строка отбора, две колонки, строка состояния */
+.app.lib{grid-template-rows:48px auto 1fr 28px}
+
+a.btn{text-decoration:none}
+
+/* ── Поиск по имени ─────────────────────────────────────────────────── */
+
+.find{display:flex;align-items:center;gap:8px;width:230px;height:34px;padding:0 10px;
+  border-radius:8px;background:var(--s3);color:var(--t3)}
+.find:focus-within{outline:1.5px solid var(--a1)}
+.find input{flex:1;min-width:0;height:100%;background:none;border:none;outline:none;
+  font-size:13px;color:var(--t1)}
+.find input::placeholder{color:var(--t3)}
+
+/* ── Строка отбора ──────────────────────────────────────────────────── */
+
+.pick{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px}
+.pick-word{color:var(--t3);font-size:13px;line-height:18px}
+.pick-tags{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+
+/* Выбранный тег показан инверсией: тёмный текст на светлой плашке */
+.pill{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 5px 0 10px;
+  border-radius:999px;background:var(--t1);color:var(--bg);font-size:13px;font-weight:600;line-height:1}
+.pill .x{display:flex;padding:3px;border-radius:50%;color:inherit;opacity:.55}
+.pill .x:hover{opacity:1;background:rgba(0,0,0,.14)}
+.pill .ic{font-size:13px;stroke-width:2.25}
+
+.pill-add{background:var(--s3);color:var(--t2);font-weight:400;font-size:12px;padding:0 10px;gap:5px}
+.pill-add:hover{background:var(--s4);color:var(--t1)}
+.pill-add .ic{font-size:12px}
+
+.seg{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--s3)}
+.seg button{height:22px;padding:0 11px;border-radius:999px;font-size:12px;line-height:1;color:var(--t2)}
+.seg button:hover{color:var(--t1)}
+.seg button.on{background:var(--t1);color:var(--bg);font-weight:600}
+
+.mini{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;
+  border-radius:999px;background:var(--s3);color:var(--t2);font-size:12px;line-height:1}
+.mini:hover{background:var(--s4);color:var(--t1)}
+.mini .ic{font-size:12px}
+.mini-ghost{background:transparent;color:var(--t3)}
+.mini-ghost:hover{background:var(--s2)}
+.mini:disabled{opacity:.4;cursor:default}
+.mini:disabled:hover{background:var(--s3);color:var(--t2)}
+
+/* Где я сейчас в дереве каталога */
+.tag-here{background:var(--s3)}
+.tag-here .lbl{font-weight:600}
+
+/* Крошки. У каталогов иерархия настоящая, поэтому путь честный. */
+.pill-cat{background:transparent;color:var(--t2);font-weight:400;cursor:pointer;gap:6px;padding:0 8px}
+.pill-cat:hover{background:var(--s3);color:var(--t1)}
+.pill-cat .ic{font-size:13px;color:var(--t3)}
+/* Где ты сейчас: последнее звено выделено весом, а не заливкой */
+.pill-here{color:var(--t1);font-weight:600}
+.pill-here .ic{color:var(--t2)}
+.crumb-sep{color:var(--t3);font-size:13px}
+
+/* Каталог в сетке отличается только значком и подписью «сколько внутри» */
+.card-cat .thumb{color:var(--t2)}
+
+/* Диапазон дат. Стоит рядом с И/ИЛИ: это такая же часть отбора, как теги. */
+.dates{display:inline-flex;align-items:center;gap:6px}
+.dates input[type=date]{height:24px;padding:0 8px;border-radius:999px;background:var(--s3);
+  border:none;outline:none;font-size:12px;line-height:1;color:var(--t1);
+  font-family:"Cascadia Mono",Consolas,monospace}
+.dates input[type=date]:focus{outline:1.5px solid var(--a1)}
+.dates input[type=date]:invalid,
+.dates input[type=date]:not(:valid){color:var(--t3)}
+/* Системный значок календаря чёрный и в тёмной теме не виден */
+.dates input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7);cursor:pointer}
+:root[data-tanba="light"] .dates input[type=date]::-webkit-calendar-picker-indicator{filter:none}
+.dates .dash{color:var(--t3);font-size:12px}
+
+/* Имя отбора набирается прямо в строке, чтобы не звать диалог */
+.save-name{width:170px;height:24px;padding:0 10px;border-radius:999px;background:var(--s3);
+  border:none;outline:none;font-size:12px;color:var(--t1)}
+.save-name:focus{outline:1.5px solid var(--a1)}
+.save-name::placeholder{color:var(--t3)}
+
+/* ── Строка состояния ───────────────────────────────────────────────── */
+
+.status{display:flex;align-items:center;gap:16px;padding:0 16px;
+  background:var(--s2);color:var(--t2);font-size:12px;line-height:16px}
+
+/* ── Панель справа ──────────────────────────────────────────────────── */
+
+.saved{background:var(--s2);border-radius:12px;padding:12px}
+.saved h3{margin:0 0 6px;font-size:11px;line-height:14px;font-weight:600;color:var(--t3)}
+.saved-row{display:flex;align-items:center;gap:4px;border-radius:7px}
+.saved-row:hover{background:var(--s3)}
+.saved-row .nm{flex:1;min-width:0;padding:5px 6px;text-align:left;font-size:13px;line-height:18px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-row .del{display:flex;padding:5px;margin-right:2px;border-radius:6px;color:var(--t3);opacity:0}
+.saved-row:hover .del{opacity:1}
+.saved-row .del:hover{color:var(--err)}
+.saved-row .del .ic{font-size:14px}
+
+/* Тег, который ничего не добавит к отбору. Не прячем, только глушим */
+.tag-zero .lbl{color:var(--t3)}
+
+/* ── Выбор тега для строки отбора ───────────────────────────────────── */
+
+.pop{position:fixed;z-index:40;width:264px;padding:8px;border-radius:10px;
+  background:var(--s3);box-shadow:var(--shadow)}
+.pop input{width:100%;height:28px;padding:0 9px;border-radius:7px;
+  background:var(--s4);border:none;outline:none;font-size:13px}
+.pop input:focus{outline:1.5px solid var(--a1)}
+.pop-list{max-height:264px;overflow:auto;margin-top:6px}
+.pop-row{display:flex;align-items:baseline;gap:8px;width:100%;padding:5px 8px;
+  border-radius:7px;text-align:left}
+.pop-row:hover,.pop-row.cur{background:var(--s4)}
+.pop-row .nm{flex:1;min-width:0;font-size:13px;line-height:18px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-row .gr{font-size:11px;line-height:15px;color:var(--t3)}
+.pop-none{padding:7px 8px;font-size:12px;line-height:16px;color:var(--t3)}
+
+/* ── Результаты ─────────────────────────────────────────────────────── */
+
+/* Тег на карточке добавляется в отбор кликом, отсюда и указатель */
+.card .chip{cursor:pointer}
+.card .chip:hover{background:var(--s4);color:var(--t1)}
+.card .chip-on:hover{background:var(--t1);color:var(--bg)}
+.card .meta{gap:8px}
+
+.more{display:flex;justify-content:center;padding:14px 0 4px}

@@ -1,0 +1,158 @@
+/* Tanba. Токены взяты из Tanba UI Kit.dc.html без изменений.
+   Компоненты сняты с кита и переписаны в настоящие классы. */
+
+:root{
+--bg:#0B0B0C;--s1:#141416;--s2:#1B1B1E;--s3:#242428;--s4:#2E2E33;
+--bd:rgba(255,255,255,.09);--bd2:rgba(255,255,255,.18);
+--t1:#F2F2F3;--t2:#9E9EA6;--t3:#6B6B73;
+--ink:#0E0E10;--circle:#000000;--circleFg:#F2F2F3;
+--a1:#BFA9FF;--a2:#DFF56E;--a1s:rgba(191,169,255,.16);
+--ok:#8FE9B7;--warn:#F5C85E;--err:#FF7A6B;--info:#7FE3F0;
+--shadow:0 8px 28px rgba(0,0,0,.55);--sh1:0 1px 2px rgba(0,0,0,.4);
+--stripe:rgba(255,255,255,.06);
+}
+:root[data-tanba="light"]{
+--bg:#EFEFEB;--s1:#FFFFFF;--s2:#F7F7F4;--s3:#EDEDE7;--s4:#E1E1DA;
+--bd:rgba(18,18,22,.10);--bd2:rgba(18,18,22,.22);
+--t1:#17171A;--t2:#5C5C64;--t3:#8B8B93;
+--a1:#A98FF5;--a2:#CBE752;--a1s:rgba(169,143,245,.18);
+--ok:#2E9E68;--warn:#B07A12;--err:#D0402F;--info:#1E8DA0;
+--shadow:0 8px 24px rgba(18,18,22,.14);--sh1:0 1px 2px rgba(18,18,22,.08);
+--stripe:rgba(18,18,22,.05);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--t1);
+  font-family:"Segoe UI","Segoe UI Variable Text",system-ui,sans-serif;
+  font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased;
+  overflow:hidden;user-select:none}
+button{font:inherit;color:inherit;border:none;background:none;padding:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+
+/* Системная полоса прокрутки светлая и рвёт тёмную тему. */
+*{scrollbar-width:thin;scrollbar-color:var(--s4) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:6px;
+  border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--t3);background-clip:content-box}
+::-webkit-scrollbar-corner{background:transparent}
+.ic{width:1em;height:1em;flex:none;stroke:currentColor;fill:none;
+  stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Каркас ─────────────────────────────────────────────────────────── */
+
+.app{display:grid;grid-template-rows:48px 1fr 56px;height:100vh}
+
+.top{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--s1)}
+.brand{font-weight:600;letter-spacing:-.01em}
+.top .sep{width:1px;height:20px;background:var(--bd)}
+.muted{color:var(--t2);font-size:13px;line-height:18px}
+.dim{color:var(--t3);font-size:12px;line-height:16px}
+.grow{margin-left:auto}
+
+.main{display:grid;grid-template-columns:1fr 292px;min-height:0}
+.files{padding:14px 16px;overflow:auto;min-width:0}
+.side{background:var(--s1);padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+
+.bar{display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--s1)}
+
+/* ── Кнопки ─────────────────────────────────────────────────────────── */
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;
+  border-radius:8px;background:var(--s2);color:var(--t1);font-size:13px;line-height:1}
+/* Переход между экранами это обычная ссылка, но выглядеть должна кнопкой */
+a.btn{text-decoration:none;color:var(--t1)}
+a.btn:hover{text-decoration:none;color:var(--t1)}
+a.btn.btn-ghost{color:var(--t2)}
+a.btn.btn-ghost:hover{color:var(--t1)}
+.btn:hover{background:var(--s3)}
+.btn .ic{font-size:15px}
+.btn-primary{background:var(--a2);color:var(--ink);font-weight:600}
+.btn-primary:hover{background:var(--a2);filter:brightness(1.06)}
+.btn-ghost{background:transparent;color:var(--t2)}
+.btn-ghost:hover{background:var(--s2);color:var(--t1)}
+.btn-icon{width:34px;height:34px;padding:0;justify-content:center}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:disabled:hover{background:var(--s2);filter:none}
+.btn-primary:disabled:hover{background:var(--a2)}
+.count{padding:1px 6px;border-radius:5px;background:rgba(0,0,0,.16);
+  font-weight:600;font-size:11px;line-height:14px}
+
+/* ── Сетка файлов ───────────────────────────────────────────────────── */
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+
+.card{background:var(--s1);border-radius:12px;overflow:hidden;cursor:pointer;
+  position:relative;outline:2px solid transparent;outline-offset:-2px}
+.card:hover{background:var(--s2)}
+.card.sel{background:var(--s2);outline-color:var(--a1)}
+.card .thumb{height:82px;display:flex;align-items:center;justify-content:center;
+  background:var(--s2);color:var(--t3);font-size:24px;position:relative;overflow:hidden}
+.card.sel .thumb{background:var(--s3)}
+/* Эскиз ложится поверх значка типа: пока Windows его рисует, видно значок. */
+.card .thumb img{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:0;transition:opacity .12s}
+.card .thumb img.ok{opacity:1}
+.card .name{padding:8px 10px 3px;font-size:13px;line-height:17px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .meta{padding:0 10px 9px;display:flex;gap:6px;align-items:center}
+.card .chips{padding:0 10px 9px;display:flex;flex-wrap:wrap;gap:4px}
+
+.chip{padding:2px 7px;border-radius:6px;background:var(--s3);color:var(--t2);
+  font-size:11px;line-height:15px;white-space:nowrap}
+.chip-on{background:var(--t1);color:var(--bg)}
+
+/* ── Группы тегов ───────────────────────────────────────────────────── */
+
+.group{background:var(--s2);border-radius:12px;padding:12px}
+.group h3{margin:0 0 8px;font-size:11px;line-height:14px;font-weight:600;color:var(--t3)}
+.group .single{font-weight:400;color:var(--t3)}
+
+.tag{display:flex;align-items:center;gap:9px;width:100%;padding:4px 6px;
+  border-radius:7px;text-align:left}
+.tag:hover{background:var(--s3)}
+.tag .lbl{font-size:13px;line-height:18px;color:var(--t1);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag .n{font-size:11px;line-height:15px;color:var(--t3)}
+
+/* Флажок: три состояния. Промежуточное несёт смысл, а не украшает. */
+.box{width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid var(--bd2);
+  display:flex;align-items:center;justify-content:center;color:transparent}
+.box.on,.box.partial{background:var(--a1);border-color:var(--a1);color:var(--ink)}
+.box .ic{font-size:12px;stroke-width:2.5}
+.radio{border-radius:50%}
+
+.newtag{display:flex;align-items:center;gap:7px;margin-top:6px;padding:0 6px}
+.newtag input{flex:1;min-width:0;height:28px;padding:0 9px;border-radius:7px;
+  background:var(--s3);border:none;outline:none;font-size:13px}
+.newtag input::placeholder{color:var(--t3)}
+.newtag input:focus{outline:1.5px solid var(--a1)}
+
+/* ── Пусто ──────────────────────────────────────────────────────────── */
+
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;text-align:center}
+.empty .circle{width:64px;height:64px;border-radius:50%;background:var(--a2);
+  color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:28px}
+.empty h2{margin:0;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.01em}
+.empty p{margin:0;max-width:380px;color:var(--t2);font-size:13px;line-height:18px}
+
+/* ── Тост ───────────────────────────────────────────────────────────── */
+
+.toast{position:fixed;left:50%;bottom:72px;transform:translateX(-50%) translateY(8px);
+  background:var(--s4);color:var(--t1);padding:10px 16px;border-radius:10px;
+  box-shadow:var(--shadow);font-size:13px;line-height:18px;
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;z-index:20}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--err);color:var(--ink)}
+
+/* ── Оверлей приёма файлов ──────────────────────────────────────────── */
+
+.drop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.6);z-index:30}
+.drop.on{display:flex}
+.drop .zone{padding:44px 64px;border-radius:16px;border:2px dashed var(--a1);
+  background:var(--s1);font-size:15px;font-weight:600}

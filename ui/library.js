@@ -1,0 +1,584 @@
+'use strict';
+
+// Отбор работает как запрос: набор тегов, режим И/ИЛИ и подстрока в имени.
+// Порядок тегов ничего не значит, иерархии между ними нет.
+// dates: какую дату мерить, created | modified | any (любая из двух).
+// Дата не тег: она непрерывна, поэтому отбирается диапазоном.
+// exts: выбранные форматы. Ведут себя как обычная группа тегов
+// и слушаются того же переключателя И/ИЛИ.
+// cat: в каком каталоге мы сейчас. Это область, а не условие отбора:
+// она всегда И, независимо от переключателя. Внутри видны прямые дети.
+// show: что показывать в выдаче. Не формат и не тег, а вид объекта,
+// поэтому отдельная группа. Хотя бы один всегда выбран.
+const pick = { tags: [], exts: [], show: ['files', 'catalogs'],
+               mode: 'and', text: '', from: '', to: '', dates: 'any', cat: null };
+let catInfo = null;   // имя, путь наверх и дерево текущего каталога
+const PAGE = 200;
+
+let res = { files: [], total: 0, bytes: 0 };
+let facets = { total: 0, root: '', groups: [] };
+let saved = [];
+let tagIx = {};   // id -> { tag, group }
+
+const $ = id => document.getElementById(id);
+
+const jget = async url => {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
+const jsend = async (url, method, body) => {
+  const r = await fetch(url, {
+    method,
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
+
+function params(extra) {
+  const p = new URLSearchParams();
+  if (pick.tags.length) p.set('tags', pick.tags.join(','));
+  if (pick.exts.length) p.set('ext', pick.exts.join(','));
+  p.set('mode', pick.mode);
+  if (pick.text) p.set('q', pick.text);
+  if (pick.from) p.set('from', pick.from);
+  if (pick.to) p.set('to', pick.to);
+  if (pick.from || pick.to) p.set('dates', pick.dates);
+  if (pick.cat) p.set('cat', pick.cat);
+  if (pick.show.length === 1) p.set('show', pick.show[0]);
+  for (const k in extra || {}) p.set(k, extra[k]);
+  return p.toString();
+}
+
+// ── Загрузка ───────────────────────────────────────────────────────────
+
+async function load(append) {
+  const offset = append ? res.files.length : 0;
+  try {
+    const jobs = [jget('/api/library?' + params({ limit: PAGE, offset }))];
+    if (!append) jobs.push(jget('/api/library/facets?' + params()));
+    const [page, fac] = await Promise.all(jobs);
+
+    res = append ? Object.assign({}, page, { files: res.files.concat(page.files) }) : page;
+    if (fac) { facets = fac; indexTags(); }
+    render();
+  } catch (e) {
+    toast('Не удалось получить отбор: ' + e.message, 'err');
+  }
+}
+
+async function loadSaved() {
+  try { saved = await jget('/api/library/saved'); renderPanel(); }
+  catch { /* сохранённых может не быть, это не повод шуметь */ }
+}
+
+function indexTags() {
+  tagIx = {};
+  for (const g of facets.groups)
+    for (const t of g.tags) tagIx[t.id] = { tag: t, group: g };
+}
+
+// ── Отрисовка ──────────────────────────────────────────────────────────
+
+function render() {
+  renderPicked();
+  renderPanel();
+  renderResults();
+
+  $('found').textContent = `${num(res.total)} ${plural(res.total, 'файл', 'файла', 'файлов')}`;
+  $('stBytes').textContent = res.bytes ? fmtSize(res.bytes) + ' в отборе' : '';
+  $('stRoot').textContent = facets.root || '';
+  for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === pick.mode);
+  for (const b of $('dateField').children) b.classList.toggle('on', b.dataset.dates === pick.dates);
+  $('save').disabled = !pick.tags.length && !pick.exts.length;
+
+  // Внутри каталога отбора нет, там только навигация. Прячем всё,
+  // что относится к поиску, включая строку по имени в шапке.
+  const inside = !!pick.cat;
+  document.querySelector('.find').hidden = inside;
+  for (const id of ['mode', 'save', 'reset']) $(id).hidden = inside;
+  document.querySelector('.dates').hidden = inside;
+}
+
+// Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
+// в отличие от тегов, где крошки были бы враньём.
+async function enterCatalog(id) {
+  pick.cat = id || null;
+  catInfo = null;
+  if (id) {
+    try { catInfo = await jget('/api/catalogs/' + id); }
+    catch { pick.cat = null; }
+  }
+  load();
+}
+
+function renderPicked() {
+  const box = $('picked');
+
+  // Крошки. Начинаются с «Библиотека»: это выход наружу, и он должен быть
+  // виден, а не прятаться в крестике. Дальше путь по каталогам, он честный,
+  // потому что у каталогов иерархия настоящая.
+  const path = catInfo && catInfo.path || [];
+  const crumbs = !pick.cat ? '' : `
+    <span class="pill pill-cat" data-goto="" title="Выйти в библиотеку">Библиотека</span>`
+    + path.map(p => `
+    <span class="crumb-sep">/</span>
+    <span class="pill pill-cat${p.id === pick.cat ? ' pill-here' : ''}" data-goto="${p.id}"
+          title="Перейти в «${esc(p.name)}»">
+      <svg class="ic"><use href="#i-folder"></use></svg>${esc(p.name)}
+    </span>`).join('');
+
+  box.innerHTML = crumbs + pick.tags.map(id => `
+    <span class="pill">${esc(name(id))}<button class="x" data-drop="${id}" title="Убрать тег">
+      <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
+    + pick.exts.map(e => `
+    <span class="pill">${esc(e)}<button class="x" data-dropext="${esc(e)}" title="Убрать формат">
+      <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
+    + `<button class="pill pill-add" id="add"><svg class="ic"><use href="#i-plus"></use></svg>тег</button>`;
+
+  box.querySelectorAll('[data-drop]').forEach(el => {
+    el.onclick = () => toggleTag(+el.dataset.drop);
+  });
+  box.querySelectorAll('[data-dropext]').forEach(el => {
+    el.onclick = () => toggleExt(el.dataset.dropext);
+  });
+  box.querySelectorAll('[data-goto]').forEach(el => {
+    el.onclick = e => { e.stopPropagation(); enterCatalog(+el.dataset.goto || null); };
+  });
+  $('add').onclick = () => openPop($('add'));
+}
+
+// Внутри каталога панель отдаётся под дерево целиком. Два честных режима:
+// снаружи ищешь, внутри ходишь. Искать внутри работы из десятка файлов нечего.
+function renderTree(node, cur, depth = 0) {
+  const on = node.id === cur;
+  return `
+    <button class="tag${on ? ' tag-here' : ''}" data-goto="${node.id}"
+            style="padding-left:${6 + depth * 16}px">
+      <svg class="ic"><use href="#i-folder"></use></svg>
+      <span class="lbl">${esc(node.name)}</span>
+    </button>` + (node.children || []).map(k => renderTree(k, cur, depth + 1)).join('');
+}
+
+function renderPanel() {
+  if (pick.cat) {
+    $('panel').innerHTML = catInfo && catInfo.tree
+      ? `<div class="group"><h3>Каталог</h3>${renderTree(catInfo.tree, pick.cat)}</div>`
+      : '';
+    $('panel').querySelectorAll('[data-goto]').forEach(el => {
+      el.onclick = () => enterCatalog(+el.dataset.goto);
+    });
+    return;
+  }
+
+  const savedBlock = saved.length ? `
+    <div class="saved">
+      <h3>Сохранённые отборы</h3>
+      ${saved.map(s => `
+        <div class="saved-row">
+          <button class="nm" data-apply="${s.id}" title="${esc(s.name)}">${esc(s.name)}</button>
+          <button class="del" data-del="${s.id}" title="Удалить отбор">
+            <svg class="ic"><use href="#i-trash"></use></svg>
+          </button>
+        </div>`).join('')}
+    </div>` : '';
+
+  // Все группы устроены одинаково. Отличается только группа
+  // с единственным выбором: там радиокнопки вместо флажков.
+  const groups = facets.groups.map(g => `
+    <div class="group">
+      <h3>${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
+      ${nest(g.tags).map(({ t, d }) => {
+        const on = pick.tags.includes(t.id);
+        return `
+        <button class="tag${t.count ? '' : ' tag-zero'}" data-tag="${t.id}"
+                style="padding-left:${6 + d * 18}px">
+          <span class="box${on ? ' on' : ''}${g.isMulti ? '' : ' radio'}">
+            <svg class="ic"><use href="#i-check"></use></svg>
+          </span>
+          <span class="lbl">${esc(t.name)}</span>
+          <span class="n mono">${t.count ? num(t.count) : ''}</span>
+        </button>`;
+      }).join('')}
+    </div>`).join('');
+
+  // Формат рисуется тем же блоком, что и группы тегов: снаружи он от них
+  // ничем не отличается, только значения берутся из расширений файлов.
+  const fmt = facets.formats;
+  const formatBlock = fmt && fmt.items && fmt.items.length ? `
+    <div class="group">
+      <h3>${esc(fmt.name)}</h3>
+      ${fmt.items.map(it => {
+        const on = pick.exts.includes(it.ext);
+        return `
+        <button class="tag${it.count ? '' : ' tag-zero'}" data-ext="${esc(it.ext)}">
+          <span class="box${on ? ' on' : ''}">
+            <svg class="ic"><use href="#i-check"></use></svg>
+          </span>
+          <span class="lbl">${esc(it.name)}</span>
+          <span class="n mono">${it.count ? num(it.count) : ''}</span>
+        </button>`;
+      }).join('')}
+    </div>` : '';
+
+  // Вид объекта идёт первой группой: она отвечает на вопрос «что вообще
+  // показывать», а формат и теги уточняют уже внутри этого.
+  const k = facets.kinds;
+  const showBlock = k ? `
+    <div class="group">
+      <h3>${esc(k.name)}</h3>
+      ${k.items.map(it => {
+        const on = pick.show.includes(it.key);
+        return `
+        <button class="tag${it.count ? '' : ' tag-zero'}" data-show="${it.key}">
+          <span class="box${on ? ' on' : ''}">
+            <svg class="ic"><use href="#i-check"></use></svg>
+          </span>
+          <span class="lbl">${esc(it.name)}</span>
+          <span class="n mono">${it.count ? num(it.count) : ''}</span>
+        </button>`;
+      }).join('')}
+    </div>` : '';
+
+  $('panel').innerHTML = savedBlock + showBlock + formatBlock + groups;
+
+  $('panel').querySelectorAll('[data-show]').forEach(el => {
+    el.onclick = () => toggleShow(el.dataset.show);
+  });
+
+  $('panel').querySelectorAll('[data-tag]').forEach(el => {
+    el.onclick = () => toggleTag(+el.dataset.tag);
+  });
+  $('panel').querySelectorAll('[data-ext]').forEach(el => {
+    el.onclick = () => toggleExt(el.dataset.ext);
+  });
+  $('panel').querySelectorAll('[data-apply]').forEach(el => {
+    el.onclick = () => applySaved(+el.dataset.apply);
+  });
+  $('panel').querySelectorAll('[data-del]').forEach(el => {
+    el.onclick = () => dropSaved(+el.dataset.del);
+  });
+}
+
+const ICON = ext => {
+  if (/^(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic|svg)$/.test(ext || '')) return 'i-image';
+  if (/^(mp4|mov|avi|mkv|webm|m4v)$/.test(ext || '')) return 'i-play';
+  if (/^(pdf|docx?|xlsx?|pptx?|txt|rtf)$/.test(ext || '')) return 'i-doc';
+  return 'i-file';
+};
+
+function renderResults() {
+  const box = $('results');
+
+  if (!res.files.length) {
+    // Пусто по-разному: библиотека и правда пуста или отбор ничего не поймал.
+    const filtered = pick.tags.length || pick.exts.length || pick.text || pick.from || pick.to;
+    box.innerHTML = `
+      <div class="empty">
+        <div class="circle"><svg class="ic"><use href="#i-grid"></use></svg></div>
+        <h2>${filtered ? 'Ничего не нашлось' : 'В библиотеке пусто'}</h2>
+        <p>${filtered
+          ? (pick.from || pick.to
+            ? 'Раздвинь диапазон дат, сними лишний тег или переключи И на ИЛИ.'
+            : 'Сними лишний тег или переключи И на ИЛИ, тогда хватит любого из выбранных.')
+          : 'Файлы появятся здесь, когда разложишь то, что лежит в приёме.'}</p>
+      </div>`;
+    return;
+  }
+
+  box.innerHTML = `<div class="grid">` + res.files.map(f => `
+    <div class="card${f.kind === 'catalog' ? ' card-cat' : ''}" data-id="${f.id}"
+         data-kind="${f.kind || 'file'}" title="${esc(f.name)}" draggable="true">
+      <div class="thumb">
+        <svg class="ic"><use href="#${f.kind === 'catalog' ? 'i-folder' : ICON(f.ext)}"></use></svg>
+        ${f.kind === 'catalog' ? ''
+          : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
+      </div>
+      <div class="name">${esc(f.name)}</div>
+      <div class="meta">
+        <span class="dim mono">${fmtSize(f.size)}</span>
+        <span class="dim mono">${f.kind === 'catalog' ? (f.count || 0) + ' внутри' : fmtDate(f.addedAt)}</span>
+      </div>
+      ${(f.tags || []).length ? `<div class="chips">${f.tags.map(id => `
+        <span class="chip${pick.tags.includes(id) ? ' chip-on' : ''}" data-add="${id}"
+              title="${pick.tags.includes(id) ? 'Убрать из отбора' : 'Добавить в отбор'}"
+              >${esc(name(id))}</span>`).join('')}</div>` : ''}
+    </div>`).join('') + `</div>`
+    + (res.files.length < res.total
+      ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`
+      : '');
+
+  // Двойной клик по каталогу входит внутрь, по файлу показывает его в проводнике.
+  box.querySelectorAll('.card').forEach(el => {
+    el.ondblclick = () => el.dataset.kind === 'catalog'
+      ? enterCatalog(+el.dataset.id)
+      : reveal(+el.dataset.id);
+  });
+  box.querySelectorAll('[data-add]').forEach(el => {
+    el.onclick = e => { e.stopPropagation(); toggleTag(+el.dataset.add); };
+    el.ondblclick = e => e.stopPropagation();   // двойной клик по тегу не должен звать «показать файл»
+  });
+  if ($('more')) $('more').onclick = () => load(true);
+}
+
+/// Вложенность внутри группы: ребёнок идёт сразу за своим родителем.
+function nest(tags) {
+  const ids = new Set(tags.map(t => t.id));
+  const kids = {}, roots = [], out = [];
+  for (const t of tags) {
+    if (t.parentId && ids.has(t.parentId)) (kids[t.parentId] = kids[t.parentId] || []).push(t);
+    else roots.push(t);
+  }
+  const walk = (t, d) => { out.push({ t, d }); (kids[t.id] || []).forEach(k => walk(k, d + 1)); };
+  roots.forEach(t => walk(t, 0));
+  return out;
+}
+
+// ── Действия ───────────────────────────────────────────────────────────
+
+function toggleTag(id) {
+  if (pick.tags.includes(id)) {
+    pick.tags = pick.tags.filter(x => x !== id);
+  } else {
+    const g = tagIx[id] && tagIx[id].group;
+    // В группе с единственным выбором новый тег вытесняет прежний.
+    if (g && !g.isMulti) pick.tags = pick.tags.filter(x => !(tagIx[x] && tagIx[x].group.id === g.id));
+    pick.tags.push(id);
+  }
+  load();
+}
+
+// Снять последнюю галочку нельзя: пустая выдача никому не нужна.
+// Вместо этого включается вторая, то есть ведёт себя как радиокнопка,
+// но обе держать тоже можно.
+function toggleShow(key) {
+  const other = key === 'files' ? 'catalogs' : 'files';
+  if (!pick.show.includes(key)) pick.show = [...pick.show, key];
+  else if (pick.show.length > 1) pick.show = pick.show.filter(x => x !== key);
+  else pick.show = [other];
+  load();
+}
+
+function toggleExt(ext) {
+  pick.exts = pick.exts.includes(ext)
+    ? pick.exts.filter(x => x !== ext)
+    : [...pick.exts, ext];
+  load();
+}
+
+$('mode').onclick = e => {
+  const b = e.target.closest('[data-mode]');
+  if (!b || b.dataset.mode === pick.mode) return;
+  pick.mode = b.dataset.mode;
+  load();
+};
+
+// Какую дату мерить. Переключать имеет смысл только когда диапазон задан,
+// но кнопки не блокируем: порядок «сначала поле, потом даты» тоже нормальный.
+$('dateField').onclick = e => {
+  const b = e.target.closest('[data-dates]');
+  if (!b || b.dataset.dates === pick.dates) return;
+  pick.dates = b.dataset.dates;
+  if (pick.from || pick.to) load(); else render();
+};
+
+for (const id of ['from', 'to']) {
+  $(id).onchange = () => { pick[id] = $(id).value; load(); };
+}
+
+$('reset').onclick = () => {
+  pick.tags = [];
+  pick.exts = [];
+  pick.mode = 'and';
+  pick.text = '';
+  pick.from = pick.to = '';
+  pick.dates = 'any';
+  pick.cat = null;
+  catInfo = null;
+  $('q').value = '';
+  $('from').value = '';
+  $('to').value = '';
+  load();
+};
+
+let findTimer;
+$('q').oninput = () => {
+  pick.text = $('q').value.trim();
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => load(), 250);
+};
+
+async function reveal(id) {
+  try { await jsend('/api/library/reveal', 'POST', { id }); }
+  catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+}
+
+// ── Сохранённые отборы ─────────────────────────────────────────────────
+
+$('save').onclick = () => {
+  $('save').hidden = true;
+  $('saveName').hidden = false;
+  $('saveName').value = [...pick.tags.map(id => name(id)), ...pick.exts].join(', ');
+  $('saveName').focus();
+  $('saveName').select();
+};
+
+$('saveName').onkeydown = async e => {
+  if (e.key === 'Escape') { closeSaveName(); return; }
+  if (e.key !== 'Enter') return;
+  const nm = $('saveName').value.trim();
+  if (!nm) { closeSaveName(); return; }
+  try {
+    await jsend('/api/library/saved', 'POST',
+      { name: nm, mode: pick.mode, tagIds: pick.tags, exts: pick.exts });
+    closeSaveName();
+    await loadSaved();
+    toast(`Отбор «${nm}» сохранён`);
+  } catch (err) {
+    toast('Не сохранилось: ' + err.message, 'err');
+  }
+};
+$('saveName').onblur = () => closeSaveName();
+
+function closeSaveName() {
+  $('saveName').hidden = true;
+  $('save').hidden = false;
+}
+
+function applySaved(id) {
+  const s = saved.find(x => x.id === id);
+  if (!s) return;
+  pick.mode = s.mode === 'or' ? 'or' : 'and';
+  pick.tags = (s.tagIds || []).filter(t => tagIx[t]);
+  pick.exts = s.exts || [];
+  load();
+}
+
+async function dropSaved(id) {
+  try {
+    await jsend('/api/library/saved/' + id, 'DELETE');
+    await loadSaved();
+  } catch (e) {
+    toast('Не удалилось: ' + e.message, 'err');
+  }
+}
+
+// ── Выбор тега для строки отбора ───────────────────────────────────────
+
+let popRows = [], popCur = 0;
+
+function openPop(anchor) {
+  const r = anchor.getBoundingClientRect();
+  const pop = $('pop');
+  pop.hidden = false;
+  pop.style.left = Math.min(r.left, innerWidth - 276) + 'px';
+  pop.style.top = Math.min(r.bottom + 6, innerHeight - 320) + 'px';
+  $('popQ').value = '';
+  fillPop();
+  $('popQ').focus();
+}
+
+function closePop() { $('pop').hidden = true; }
+
+function fillPop() {
+  const s = $('popQ').value.trim().toLowerCase();
+  popRows = [];
+  for (const g of facets.groups)
+    for (const t of g.tags)
+      if (!pick.tags.includes(t.id) && (!s || t.name.toLowerCase().includes(s)))
+        popRows.push({ t, g });
+  popCur = 0;
+
+  $('popList').innerHTML = popRows.length
+    ? popRows.map((r, i) => `
+      <button class="pop-row${i === popCur ? ' cur' : ''}" data-p="${r.t.id}">
+        <span class="nm">${esc(r.t.name)}</span>
+        <span class="gr">${esc(r.g.name)}</span>
+      </button>`).join('')
+    : `<div class="pop-none">Такого тега нет</div>`;
+
+  $('popList').querySelectorAll('[data-p]').forEach(el => {
+    el.onclick = () => { closePop(); toggleTag(+el.dataset.p); };
+  });
+}
+
+$('popQ').oninput = fillPop;
+$('popQ').onkeydown = e => {
+  if (e.key === 'Escape') { closePop(); return; }
+  if (e.key === 'Enter') {
+    if (popRows[popCur]) { closePop(); toggleTag(popRows[popCur].t.id); }
+    return;
+  }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  popCur = Math.max(0, Math.min(popRows.length - 1, popCur + (e.key === 'ArrowDown' ? 1 : -1)));
+  const rows = $('popList').children;
+  for (let i = 0; i < rows.length; i++) rows[i].classList.toggle('cur', i === popCur);
+  if (rows[popCur]) rows[popCur].scrollIntoView({ block: 'nearest' });
+};
+
+document.addEventListener('mousedown', e => {
+  if (!$('pop').hidden && !$('pop').contains(e.target) && e.target.id !== 'add') closePop();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); $('q').focus(); $('q').select(); }
+  if (e.key === 'Escape' && document.activeElement === $('q')) { $('q').blur(); }
+});
+
+// ── Мелочи ─────────────────────────────────────────────────────────────
+
+$('theme').onclick = () => {
+  const light = document.documentElement.dataset.tanba === 'light';
+  document.documentElement.dataset.tanba = light ? 'dark' : 'light';
+  $('theme').querySelector('use').setAttribute('href', light ? '#i-sun' : '#i-moon');
+  localStorage.setItem('tanba-theme', light ? 'dark' : 'light');
+};
+
+let toastTimer;
+function toast(text, cls = '') {
+  const el = $('toast');
+  el.textContent = text;
+  el.className = 'toast show ' + cls;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = 'toast ' + cls, 3200);
+}
+
+const name = id => (tagIx[id] ? tagIx[id].tag.name : '?');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = n => (n || 0).toLocaleString('ru-RU');
+
+function fmtSize(b) {
+  if (!b) return '';
+  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return (i === 0 ? b : b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
+}
+
+function fmtDate(sec) {
+  if (!sec) return '';
+  return new Date(sec * 1000).toLocaleDateString('ru-RU',
+    { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+// Тема из прошлого запуска
+if (localStorage.getItem('tanba-theme') === 'light') {
+  document.documentElement.dataset.tanba = 'light';
+  $('theme').querySelector('use').setAttribute('href', '#i-moon');
+}
+
+loadSaved();
+load();
+// Библиотека пополняется на экране разбора, обновляемся при возврате в окно.
+addEventListener('focus', () => load());

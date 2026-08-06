@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Tanba</RootNamespace>
+    <AssemblyName>Tanba</AssemblyName>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Требуется генератору LibraryImport для P/Invoke в Shell/Native.cs -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Хост окна: WinForms несёт WebView2 и System.Drawing для эскизов -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon></ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Схема вшита в сборку: exe самодостаточен, файл рядом не нужен -->
+    <EmbeddedResource Include="..\..\schema.sql" LogicalName="Tanba.schema.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Интерфейс отдаётся статикой из tanba/ui -->
+    <Content Include="..\..\ui\**\*" LinkBase="ui" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

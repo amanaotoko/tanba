@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Local runtime data lives on the storage drive, never in the repo
+*.db
+*.db-wal
+*.db-shm
+catalog.csv
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
