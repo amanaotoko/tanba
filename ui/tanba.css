@@ -89,9 +89,14 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
 
 .card{background:var(--s1);border-radius:12px;overflow:hidden;cursor:pointer;
-  position:relative;outline:2px solid transparent;outline-offset:-2px}
+  position:relative}
 .card:hover{background:var(--s2)}
-.card.sel{background:var(--s2);outline-color:var(--a1)}
+.card.sel{background:var(--s2)}
+/* Рамка выделения отдельным слоем поверх карточки. Обычная обводка тут
+   не годится: эскиз лежит абсолютом, а позиционированные потомки красятся
+   позже родителя и накрывают её. */
+.card.sel::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  border:2px solid var(--a1);border-radius:inherit}
 .card .thumb{height:82px;display:flex;align-items:center;justify-content:center;
   background:var(--s2);color:var(--t3);font-size:24px;position:relative;overflow:hidden}
 .card.sel .thumb{background:var(--s3)}
