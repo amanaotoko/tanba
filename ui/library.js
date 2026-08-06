@@ -172,7 +172,7 @@ function renderPicked() {
 function renderTree(node, cur, depth = 0) {
   const on = node.id === cur;
   return `
-    <button class="tag${on ? ' tag-here' : ''}" data-goto="${node.id}"
+    <button class="tag tag-tree${on ? ' tag-here' : ''}" data-goto="${node.id}"
             style="padding-left:${6 + depth * 16}px">
       <svg class="ic"><use href="#i-folder"></use></svg>
       <span class="lbl">${esc(node.name)}</span>

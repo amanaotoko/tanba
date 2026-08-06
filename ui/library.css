@@ -48,6 +48,10 @@ a.btn{text-decoration:none}
 .mini:disabled{opacity:.4;cursor:default}
 .mini:disabled:hover{background:var(--s3);color:var(--t2)}
 
+/* Строка дерева стоит просторнее строки фильтра: по ней ходят, а не
+   пробегают глазами, и попасть мышью надо с первого раза */
+.tag-tree{padding-top:10px;padding-bottom:10px}
+
 /* Где я сейчас в дереве каталога */
 .tag-here{background:var(--s3)}
 .tag-here .lbl{font-weight:600}
