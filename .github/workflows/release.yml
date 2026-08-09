@@ -1,14 +1,11 @@
-# Builds and publishes a Tanba release when a version tag is pushed on prod.
+# Builds and publishes a Tanba release when a version tag is pushed.
 #
-#   git switch prod
-#   git merge main
 #   git tag v0.2.0
-#   git push origin prod --tags
+#   git push origin main --tags
 #
-# The update token is injected from the repository secret TANBA_UPDATE_TOKEN
-# and baked into the executable. It must be a fine-grained token limited to
-# this repository with Contents: Read-only, because a baked-in token can be
-# extracted from the shipped binary.
+# The repository is public, so the shipped app reads its releases without any
+# credential and carries no secret. GITHUB_TOKEN below is only used to create
+# the release, and it exists only for the duration of this job.
 
 name: release
 
@@ -42,8 +39,6 @@ jobs:
         run: dotnet tool install -g vpk --version 1.2.0
 
       - name: Publish
-        env:
-          TANBA_UPDATE_TOKEN: ${{ secrets.TANBA_UPDATE_TOKEN }}
         run: >
           dotnet publish src/Tanba/Tanba.csproj
           -c Release -r win-x64 --self-contained true
