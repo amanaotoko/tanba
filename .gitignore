@@ -12,6 +12,11 @@ build/
 *.db-shm
 catalog.csv
 
+# Design working material: макеты из Claude Design, брифы и чужие работы,
+# взятые как образцы. Лежит на диске, но не в публичном репозитории.
+claude-design/
+ui-kit-brief.md
+
 # OS noise
 Thumbs.db
 desktop.ini
