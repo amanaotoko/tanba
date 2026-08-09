@@ -1,0 +1,85 @@
+# Builds and publishes a Tanba release when a version tag is pushed on prod.
+#
+#   git switch prod
+#   git merge main
+#   git tag v0.2.0
+#   git push origin prod --tags
+#
+# The update token is injected from the repository secret TANBA_UPDATE_TOKEN
+# and baked into the executable. It must be a fine-grained token limited to
+# this repository with Contents: Read-only, because a baked-in token can be
+# extracted from the shipped binary.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Read version from the tag
+        shell: pwsh
+        run: |
+          "VER=$($env:GITHUB_REF_NAME -replace '^v','')" |
+            Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install vpk
+        run: dotnet tool install -g vpk --version 1.2.0
+
+      - name: Publish
+        env:
+          TANBA_UPDATE_TOKEN: ${{ secrets.TANBA_UPDATE_TOKEN }}
+        run: >
+          dotnet publish src/Tanba/Tanba.csproj
+          -c Release -r win-x64 --self-contained true
+          -o build/publish
+          /p:Version=${{ env.VER }}
+          /p:TanbaUpdateRepo=https://github.com/${{ github.repository }}
+
+      # Deltas are computed against whatever full packages are already in the
+      # output folder, so the previous release has to be fetched first. The very
+      # first release has nothing to fetch, hence continue-on-error.
+      - name: Fetch the previous release for a delta
+        continue-on-error: true
+        run: >
+          vpk download github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }}
+          -o build/releases
+
+      - name: Pack
+        run: >
+          vpk pack
+          -u Tanba
+          -v ${{ env.VER }}
+          -p build/publish
+          -e Tanba.exe
+          -o build/releases
+          --packTitle Tanba
+          --packAuthors "Amanbek Shaimardan"
+
+      # vpk creates the release as a draft unless --publish is given.
+      - name: Upload
+        run: >
+          vpk upload github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }}
+          -o build/releases
+          --tag ${{ github.ref_name }}
+          --releaseName ${{ env.VER }}
+          --publish

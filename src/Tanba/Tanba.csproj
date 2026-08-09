@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Tanba</RootNamespace>
     <AssemblyName>Tanba</AssemblyName>
+    <!-- Одна цифра на всю сборку: её же показывает экран настроек
+         и её же ждёт vpk при упаковке релиза. -->
+    <Version>0.1.0</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- Требуется генератору LibraryImport для P/Invoke в Shell/Native.cs -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -17,6 +20,32 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
+  </ItemGroup>
+
+  <!-- Куда программа ходит за обновлением. Вшивается при сборке, чтобы
+       человеку не пришлось ничего вписывать руками.
+
+       Ключ берётся из переменной окружения TANBA_UPDATE_TOKEN и НИКОГДА
+       не лежит в репозитории. Локально его ставит build.ps1, в сборочном
+       конвейере он приезжает из секрета репозитория.
+
+       Учти: вшитый ключ можно достать из exe. Поэтому он обязан быть
+       мелкозернистым, только на чтение и только на этот репозиторий. -->
+  <PropertyGroup>
+    <TanbaUpdateRepo Condition="'$(TanbaUpdateRepo)' == ''">https://github.com/amanaotoko/tanba</TanbaUpdateRepo>
+    <TanbaUpdateToken Condition="'$(TanbaUpdateToken)' == ''">$(TANBA_UPDATE_TOKEN)</TanbaUpdateToken>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+      <_Parameter1>UpdateRepo</_Parameter1>
+      <_Parameter2>$(TanbaUpdateRepo)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+      <_Parameter1>UpdateToken</_Parameter1>
+      <_Parameter2>$(TanbaUpdateToken)</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

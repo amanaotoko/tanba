@@ -16,6 +16,9 @@ public sealed class InboxWatcher : IDisposable
 
     public int Pending { get; private set; }
 
+    /// <summary>Идёт ли пересчёт прямо сейчас. Первый после запуска бывает долгим.</summary>
+    public bool Scanning => Volatile.Read(ref _running) == 1;
+
     public InboxWatcher(Config cfg, Ingest ingest)
     {
         _ingest = ingest;
@@ -34,9 +37,16 @@ public sealed class InboxWatcher : IDisposable
         _fsw.Renamed += (_, _) => Bump();
         _fsw.Error += (_, _) => Bump();
         _fsw.EnableRaisingEvents = true;
-
-        Rescan();
     }
+
+    /// <summary>
+    /// Первый пересчёт, отдельно от конструктора и в фоне.
+    /// Раньше он стоял прямо в конструкторе, и запуск ждал, пока
+    /// посчитается sha256 всего приёма. На сотне файлов это полминуты
+    /// с пустым экраном, а после включения автозапуска это была бы
+    /// полминуты на каждой загрузке Windows.
+    /// </summary>
+    public void Start() => Task.Run(Rescan);
 
     /// <summary>Копирование крупного файла тянется, поэтому ждём полторы секунды тишины.</summary>
     private void Bump() => _debounce.Change(1500, Timeout.Infinite);

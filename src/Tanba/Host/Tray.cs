@@ -63,6 +63,13 @@ public sealed partial class Tray : IDisposable
         if (pending == 0) _lastNotified = -1;
     }
 
+    /// <summary>Разовая подсказка от значка. Для редких случаев, не для потока событий.</summary>
+    public void Say(string text)
+    {
+        try { _icon.ShowBalloonTip(5000, "Tanba", text, ToolTipIcon.None); }
+        catch (InvalidOperationException) { /* значок уже снят */ }
+    }
+
     /// <summary>Рисуем значок сами: цифра важнее картинки, а .ico пришлось бы плодить на каждый случай.</summary>
     private static Icon Render(int count)
     {

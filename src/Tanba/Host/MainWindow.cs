@@ -30,12 +30,20 @@ public sealed class MainWindow : Form
     private string? _keepBatch;   // папка последнего перетаскивания
     private bool _dragging;
     private bool _accept;         // принимаем ли то, что сейчас тащат над окном
+    private bool _hideOnce;       // первый показ пропускаем: запуск вместе с Windows
+    private bool _quitting;       // выход через меню трея, а не крестик
+    private bool _hintShown;
 
-    public MainWindow(Config cfg, Repo repo, int port)
+    /// Единственное окно процесса. Нужно, чтобы второй запуск не поднимал
+    /// вторую копию, а показал уже работающую.
+    private static MainWindow? _instance;
+
+    public MainWindow(Config cfg, Repo repo, int port, bool startHidden = false)
     {
         _cfg = cfg;
         _repo = repo;
         _port = port;
+        _hideOnce = startHidden;
         _dragTmp = Path.Combine(cfg.Meta, "dragtmp");
 
         Text = "Tanba";
@@ -65,22 +73,63 @@ public sealed class MainWindow : Form
     /// только в STA, а точка входа с операторами верхнего уровня его не даёт.
     /// </summary>
     public static Thread Start(Config cfg, Repo repo, int port,
-        Action? onClosed = null, Scanner.InboxWatcher? watcher = null)
+        Action? onClosed = null, Scanner.InboxWatcher? watcher = null, bool startHidden = false)
     {
         var t = new Thread(() =>
         {
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            using var w = new MainWindow(cfg, repo, port);
+            using var w = new MainWindow(cfg, repo, port, startHidden);
             if (watcher is not null) w.AttachWatcher(watcher);
+            _instance = w;
             Application.Run(w);
+            _instance = null;
             onClosed?.Invoke();
         })
         { Name = "Tanba UI" };
         t.SetApartmentState(ApartmentState.STA);
         t.Start();
         return t;
+    }
+
+    /// <summary>
+    /// Поднять уже работающее окно. Зовётся, когда программу запустили второй раз:
+    /// после включения автозапуска она всегда висит в трее, и ярлык на столе
+    /// иначе плодил бы копии, дерущиеся за один и тот же порт.
+    /// </summary>
+    public static void ShowExisting()
+    {
+        var w = _instance;
+        if (w is null || w.IsDisposed) return;
+        try { w.BeginInvoke(w.Reveal); }
+        catch (ObjectDisposedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    private void Reveal()
+    {
+        _hideOnce = false;
+        _ = EnsureWeb();
+        Show();
+        if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+        Activate();
+    }
+
+    /// <summary>
+    /// Первый показ при запуске вместе с Windows пропускаем. Хендл при этом
+    /// создаём руками: без него трею некуда слать обновления счётчика.
+    /// </summary>
+    protected override void SetVisibleCore(bool value)
+    {
+        if (value && _hideOnce)
+        {
+            _hideOnce = false;
+            if (!IsHandleCreated) CreateHandle();
+            base.SetVisibleCore(false);
+            return;
+        }
+        base.SetVisibleCore(value);
     }
 
     // ── Запуск WebView2 ──────────────────────────────────────────────────
@@ -104,18 +153,63 @@ public sealed class MainWindow : Form
         };
     }
 
-    protected override async void OnLoad(EventArgs e)
+    /// <summary>
+    /// Значок в трее заводим на появление хендла, а не на показ окна:
+    /// при запуске вместе с Windows окно не показывается вовсе, а значок
+    /// со счётчиком нужен именно тогда.
+    /// </summary>
+    protected override void OnHandleCreated(EventArgs e)
     {
-        base.OnLoad(e);
+        base.OnHandleCreated(e);
+        if (_tray is not null) return;
 
         _tray = new Tray(
-            open: () => { Show(); WindowState = FormWindowState.Normal; Activate(); },
+            open: Reveal,
             rescan: () => _watcher?.Rescan(),
-            quit: Close);
+            quit: () => { _quitting = true; Close(); });
         if (_watcher is not null) _tray.Update(_watcher.Pending);
 
         // Ссылки от прошлого запуска: программу могли закрыть посреди перетаскивания.
         CleanDragTmp(null);
+    }
+
+    /// <summary>
+    /// Крестик прячет окно, пока включён запуск вместе с Windows: программа
+    /// в этом режиме живёт в трее и следит за приёмом, а закрытие насовсем
+    /// лежит в меню значка. Без автозапуска крестик закрывает, как и раньше.
+    /// </summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (!_quitting && e.CloseReason == CloseReason.UserClosing && Tanba.Update.Startup.IsOn())
+        {
+            e.Cancel = true;
+            Hide();
+            if (!_hintShown)
+            {
+                _hintShown = true;
+                _tray?.Say("Tanba осталась в трее и следит за приёмом. Выход в меню значка.");
+            }
+            return;
+        }
+        base.OnFormClosing(e);
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        _ = EnsureWeb();
+    }
+
+    /// <summary>
+    /// Поднимает движок ровно один раз. Отдельно от OnLoad, потому что при
+    /// запуске в трей окно не показывается, и полагаться на событие показа нельзя.
+    /// </summary>
+    private bool _webStarted;
+
+    private async Task EnsureWeb()
+    {
+        if (_webStarted || IsDisposed) return;
+        _webStarted = true;
 
         try
         {

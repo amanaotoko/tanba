@@ -1,0 +1,40 @@
+/* Настройки. Экран редкий, поэтому колонка по центру и крупные строки:
+   читать здесь важнее, чем экономить место. */
+
+.app.set{grid-template-rows:48px 1fr 28px}
+
+.sheet{overflow:auto;padding:20px 16px 40px}
+.sheet > *{width:100%;max-width:720px;margin:0 auto}
+
+.block{background:var(--s1);border-radius:12px;padding:6px 16px;margin-bottom:12px}
+.block h2{margin:14px 0 4px;font-size:13px;line-height:18px;font-weight:600;color:var(--t2)}
+
+/* Строка настройки: слева объяснение, справа орган управления.
+   Подпись под заголовком обязательна там, где действие необратимо
+   или неочевидно, и не нужна там, где всё видно по названию. */
+.row{display:flex;align-items:center;gap:16px;padding:12px 0}
+.row + .row{border-top:1px solid var(--bd)}
+.row.col{flex-direction:column;align-items:stretch;gap:8px}
+.rt{flex:1;min-width:0}
+.rh{font-size:14px;line-height:20px;color:var(--t1)}
+.rd{margin:2px 0 0;font-size:12px;line-height:17px;color:var(--t3)}
+.rd.ok{color:var(--ok)}
+.rd.err{color:var(--err)}
+.rd.wait{color:var(--t2)}
+
+.fld{width:100%;height:34px;padding:0 10px;border-radius:8px;
+  background:var(--s3);border:none;outline:none;font-size:13px;color:var(--t1)}
+.fld::placeholder{color:var(--t3)}
+.fld:focus{outline:1.5px solid var(--a1)}
+
+/* Переключатель. Лайм тот же, что у главного действия и у значка в трее:
+   включено значит «работает», и цвет об этом говорит одинаково везде. */
+.sw{width:42px;height:24px;flex:none;border-radius:999px;background:var(--s4);
+  padding:3px;display:flex;align-items:center;transition:background .14s}
+.sw span{width:18px;height:18px;border-radius:50%;background:var(--t3);
+  transition:transform .14s,background .14s}
+.sw:hover{background:var(--bd2)}
+.sw.on{background:var(--a2)}
+.sw.on:hover{background:var(--a2);filter:brightness(1.06)}
+.sw.on span{transform:translateX(18px);background:var(--ink)}
+.sw.busy{opacity:.5}

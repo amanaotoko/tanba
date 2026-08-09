@@ -5,11 +5,40 @@ using Tanba;
 using Tanba.Scanner;
 using Tanba.Shell;
 using Tanba.Storage;
+using Tanba.Update;
 using Tanba.Web;
+using Velopack;
+
+// Строго первой строкой. При установке, обновлении и удалении Velopack
+// запускает этот же exe со служебными ключами: он отрабатывает их здесь
+// и завершает процесс. Любой код выше молотил бы впустую в эти моменты,
+// а обращение к диску S: там ещё и упало бы, потому что его может не быть.
+VelopackApp.Build().Run();
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+var toTray = args.Contains(Args.Tray);
+
+// Вторая копия не нужна и вредна: порт один и база одна. После включения
+// автозапуска программа всегда висит в трее, и ярлык на столе иначе
+// плодил бы копии, дерущиеся за один и тот же порт.
+using var single = new Mutex(true, @"Local\Tanba.instance", out var firstCopy);
+if (!firstCopy)
+{
+    await Poke();
+    return;
+}
+
 var cfg = Config.Load();
+
+// При запуске вместе с Windows диск может быть ещё не подключён, поэтому ждём.
+// Терпения даём больше именно в этом режиме: человек в этот момент не смотрит.
+if (!await WaitForRoot(cfg, toTray ? TimeSpan.FromMinutes(3) : TimeSpan.FromSeconds(10)))
+{
+    Fail($"Хранилище недоступно: {cfg.Root}\n\nПодключи диск и запусти Tanba снова.");
+    return;
+}
+
 cfg.EnsureLayout();
 
 var db = new Db(cfg.DbPath);
@@ -17,6 +46,8 @@ if (db.EnsureSchema()) Console.WriteLine($"База создана: {cfg.DbPath}
 db.Migrate();
 
 var repo = new Repo(db);
+var prefs = new Prefs(repo);
+var updater = new Updater(prefs);
 var thumbs = new Thumbs(cfg);
 var ingest = new Ingest(cfg, repo, thumbs);
 var safety = new Safety(cfg, repo);
@@ -24,8 +55,7 @@ var watcher = new InboxWatcher(cfg, ingest);
 
 safety.BackupDaily();
 
-Console.WriteLine($"Tanba, хранилище {cfg.Root}");
-Console.WriteLine($"В приёме файлов: {watcher.Pending}");
+Console.WriteLine($"Tanba {Updater.Version}, хранилище {cfg.Root}");
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -72,6 +102,9 @@ app.MapGet("/api/state", (string? sel) =>
     {
         root = cfg.Root,
         pending = inbox.Count,
+        // Первый пересчёт после запуска идёт в фоне и на большом приёме
+        // занимает заметное время: экран должен сказать об этом, а не врать нулём.
+        scanning = watcher.Scanning,
         inbox = inbox.Select(f => new
         {
             id = f.Id,
@@ -156,6 +189,15 @@ app.MapLibrary(repo, cfg);
 app.MapCatalogs(repo);
 app.MapFiles(repo, cfg, thumbs);
 app.MapTagsAdmin(repo);
+app.MapSettings(cfg, prefs, updater, () => watcher.Pending, () => watcher.Scanning);
+
+// Сюда стучится второй запуск программы, чтобы вместо своей копии
+// поднять уже работающее окно.
+app.MapPost("/api/show", () =>
+{
+    Tanba.Host.MainWindow.ShowExisting();
+    return Results.Ok(new { ok = true });
+});
 
 // ── Превью ───────────────────────────────────────────────────────────────
 // Эскиз рисует сама Windows руками Corel и Adobe, см. Shell/Thumbs.cs.
@@ -187,8 +229,9 @@ app.MapGet("/api/thumb/{id:long}", async (long id, int? size) =>
 // только через системное CF_HDROP, в браузере оно принципиально недоступно.
 // С ключом --no-window остаётся чистый сервер, открывается браузером.
 
-if (args.Contains("--no-window"))
+if (args.Contains(Args.NoWindow))
 {
+    watcher.Start();
     Console.WriteLine("Окно отключено. Открой http://127.0.0.1:5577");
     app.Run();
     return;
@@ -197,10 +240,66 @@ if (args.Contains("--no-window"))
 await app.StartAsync();
 
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-Tanba.Host.MainWindow.Start(cfg, repo, 5577, onClosed: lifetime.StopApplication, watcher: watcher);
-Console.WriteLine("Окно открыто.");
+Tanba.Host.MainWindow.Start(cfg, repo, 5577,
+    onClosed: lifetime.StopApplication, watcher: watcher, startHidden: toTray);
+
+// Обновление могло переложить файлы, а в реестре остался прежний путь.
+Startup.Refresh();
+
+// Пересчёт приёма только теперь и в фоне. Раньше он стоял в конструкторе
+// наблюдателя и держал запуск, пока считался sha256 всей папки: на сотне
+// файлов это полминуты, а с автозапуском столько же на каждой загрузке Windows.
+watcher.Start();
+
+Console.WriteLine(toTray ? "Поднялись в трей." : "Окно открыто.");
 
 await app.WaitForShutdownAsync();
+
+// ── Мелочи запуска ───────────────────────────────────────────────────────
+
+/// <summary>Просит уже работающую копию показать своё окно.</summary>
+static async Task Poke()
+{
+    try
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        await http.PostAsync("http://127.0.0.1:5577/api/show", null);
+        Console.WriteLine("Tanba уже работает, показали её окно.");
+    }
+    catch (Exception)
+    {
+        // Та копия ещё поднимается или занята. Своё окно всё равно не открываем:
+        // две копии на одну базу хуже, чем одна не откликнувшаяся.
+        Console.WriteLine("Tanba уже работает.");
+    }
+}
+
+/// <summary>Ждёт, пока появится корень хранилища.</summary>
+static async Task<bool> WaitForRoot(Config cfg, TimeSpan limit)
+{
+    if (Directory.Exists(cfg.Root)) return true;
+
+    Console.WriteLine($"Жду хранилище {cfg.Root}");
+    var until = DateTime.UtcNow + limit;
+    while (DateTime.UtcNow < until)
+    {
+        await Task.Delay(2000);
+        if (Directory.Exists(cfg.Root)) return true;
+    }
+    return false;
+}
+
+static void Fail(string text)
+{
+    Console.Error.WriteLine(text);
+    try
+    {
+        System.Windows.Forms.MessageBox.Show(text, "Tanba",
+            System.Windows.Forms.MessageBoxButtons.OK,
+            System.Windows.Forms.MessageBoxIcon.Warning);
+    }
+    catch (Exception) { /* некому показать, в консоли уже написано */ }
+}
 
 static long[] ParseIds(string? s) =>
     string.IsNullOrWhiteSpace(s)
