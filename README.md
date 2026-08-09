@@ -1,116 +1,106 @@
 # Tanba
 
-A tag-based file catalog for a design team, built to replace folders.
+A tag-based file catalog for Windows, built to replace folders.
 
-The problem it solves: a folder tree gives every file exactly one parent, but a
-real file belongs to several categories at once. A promo video is both "video"
-and "career guidance", and it belongs to two of the five institutions in our
-education complex. A tree forces you to pick one truth and throw the rest away.
+## Why
 
-Tanba keeps files flat on disk and puts all organisation in a database. Nothing
-is ever moved to be classified.
+A folder tree gives every file exactly one parent, but a real file belongs to
+several categories at once. A promo video is both "video" and "career
+guidance", and it belongs to two of the five institutions in our education
+complex. A tree forces you to pick one truth and throw the rest away, and then
+you copy the file three times so it can be found from three places.
 
-## How it works
+Tanba keeps files flat on disk and puts all organisation in a database. A file
+is stored once and can be found from as many directions as you like. Nothing is
+ever moved in order to be classified.
 
-Files land in one folder called `СОХРАНИ СЮДА` ("save here"). That is the only
-decision a person makes: no subfolders, no naming rules. A watcher picks them
-up, and you tag them later in batches.
+## How the work goes
 
-Filing moves a file into `_store\YYYY\MM\NNNNNN__original name.ext` and never
-touches it again. The path is the file's identity: editing a file changes its
-hash, not its place. Everything else, tags included, lives in SQLite.
+**Save anything into `СОХРАНИ СЮДА`.** That is the only decision you make while
+working: no subfolders, no naming rules, no thinking about where this belongs.
+The folder sits at the root of the storage drive and is the only one you ever
+open by hand.
 
-**Catalogs** are relations that look like folders. A file can sit in several
-catalogs at once, catalogs can nest, and deleting a catalog only breaks the
-link. Nothing leaves the disk.
+**Sort the pile later, in one go.** The Triage screen shows everything waiting.
+Select a few files, tick the tags that apply to all of them, press Разложить.
+The files move into storage and disappear from the pile. Tagging fifty files
+takes about as long as tagging five, because you tag them in batches rather
+than one at a time.
 
-## Notable pieces
+**Find things on the Library screen.** Pick tags and the list narrows. Combine
+them with И (all of them) or ИЛИ (any of them), add a file format, a date
+range, or a piece of the file name. The query is a set of conditions, not a
+path, so the order you pick things in does not matter.
 
-**Thumbnails come from the Windows shell.** `IShellItemImageFactory` asks the OS
-for a preview of any file, so `.cdr`, `.ai` and `.psd` render through the
-handlers CorelDRAW and Adobe already registered. No format parsing on our side,
-and coverage grows with whatever the user installs.
+**Group work into catalogs.** A catalog looks like a folder and behaves like
+one when you walk into it, but it is a relation, not a place. The same file can
+sit in several catalogs at once, catalogs can nest, and deleting a catalog only
+breaks the link. The file itself never moves and never disappears.
+
+## What it does
+
+**Previews for the formats designers actually use.** Tanba asks Windows for the
+thumbnail, so `.cdr`, `.ai`, `.psd` and anything else render through the preview
+handlers CorelDRAW and Adobe already installed. No format support to wait for:
+coverage grows with whatever is on the machine.
 
 **Duplicates merge instead of piling up.** Two identical files keep one copy and
-combine their tags, so the copy contributes information instead of waste.
+combine their tags, so the second copy adds information rather than waste.
 
-**Drag out is native.** Dropping a file into a browser upload form or a folder
-needs a real `CF_HDROP`, which HTML5 drag cannot produce. A WinForms host runs
-`DoDragDrop` with hard links carrying clean names. Copy only, never move: the
-storage path is the file's identity.
+**Files drag out into anything.** Pull a file from the window straight into a
+browser upload form, a chat, or a folder, exactly as you would from Explorer.
+It always copies, never moves: the file stays in the catalog.
 
-**Corel backup files become versions.** `Резервная копия_X.cdr` is the previous
-state of `X.cdr`. Instead of ignoring the litter, the scanner recognises it.
+**CorelDRAW backups become versions.** `Резервная копия_X.cdr` is recognised as
+the previous state of `X.cdr` instead of being left to litter the folder.
 
-**Updates are manual on purpose.** The app can update itself, but only when
-someone presses the button in settings. A silent update would close the window
-in the middle of tagging a batch, which is exactly when it is least welcome.
+**Deleting goes to the recycle bin.** Restore a file from there and it comes
+back with its tags intact.
 
-## Stack
+**Updates happen when you press the button**, never in the middle of your work.
+Tanba can also start with Windows and sit in the notification area, counting
+what is waiting to be sorted.
 
-.NET 9 on Windows, SQLite with FTS5, ASP.NET Core minimal API on 127.0.0.1,
-WebView2 host, plain HTML and CSS for the interface.
+## Installing
 
-## Running it
+Download `Tanba-win-Setup.exe` from the
+[Releases](https://github.com/amanaotoko/tanba/releases) page and run it.
 
-```
-dotnet run --project src/Tanba
-```
+It installs for the current user only and needs no administrator rights.
+Because the installer is not code-signed, Windows shows a "Windows protected
+your PC" warning on first run: choose **More info**, then **Run anyway**.
 
-Opens its own window. Add `--no-window` to run headless and use a browser at
-`http://127.0.0.1:5577`, though drag out will not work there.
-
-The storage root defaults to `S:\` and can be overridden:
+By default Tanba expects its storage on drive `S:`. To keep it somewhere else,
+set an environment variable before starting:
 
 ```
-set TANBA_ROOT=D:\archive
+setx TANBA_ROOT D:\archive
 ```
 
-On first run the program creates its folders and applies `schema.sql`.
+On first run the program creates the folders it needs and an empty database.
 
-## Releasing
+## Updating
 
-```
-.\build.ps1 0.2.0
-```
+Open Настройки and press Проверить. If a newer version is out, the button
+offers to install it, and Tanba restarts on the new version. Everything on the
+storage drive is untouched by updates.
 
-Produces an installer and an update package in `build\releases` via
-[Velopack](https://velopack.io). Keep previous releases in that folder: deltas
-are computed against them, which is the difference between a 0.2 MB update and
-a 63 MB one.
-
-Pushing a version tag runs the same steps in CI and publishes a GitHub release:
+## What lands on the disk
 
 ```
-git tag v0.2.0 && git push origin main --tags
+СОХРАНИ СЮДА    the only folder you open yourself
+_store          the files, filed by year and month
+_versions       previous states of edited files
+_thumbs         cached previews
+_meta           the database, a daily backup, and catalog.csv
 ```
 
-Installed copies live in `%LocalAppData%\Tanba`, per user and without admin
-rights. Storage on `S:\` is untouched by updates. The binaries are unsigned, so
-SmartScreen warns on first run until someone clicks through.
+`catalog.csv` is a flat export of "where each file lies and how it is tagged".
+It is rewritten after every sort, opens in Excel, and exists so that the
+contents of the catalog stay readable even if the program itself is gone.
 
-Start with Windows registers an `HKCU\...\Run` entry pointing at the root stub
-executable rather than the copy inside `current`, because that whole directory
-is replaced while an update applies and a logon can race it.
+## Status
 
-## Layout
-
-```
-schema.sql              database, embedded into the binary
-build.ps1               publish and pack a release
-src/Tanba/
-  Config.cs             disk layout
-  Storage/              database, models, data access, catalog.csv export
-  Scanner/              intake, hashing, watcher, filing
-  Shell/                P/Invoke: thumbnails, hard links, recycle bin
-  Update/               self-update, start with Windows
-  Web/                  library, catalog, tag and settings endpoints
-  Host/                 WebView2 window, tray icon, native drag
-ui/                     interface
-```
-
-## A note on language
-
-The product is Russian: interface strings and source comments are written in
-Russian because the people using it are. Repository-level things stay in
-English.
+Built for one design team and used daily. Interface and documentation for the
+people using it are in Russian; the code and this page are in English.
+See [DEVELOPING.md](DEVELOPING.md) if you want to build or change it.
