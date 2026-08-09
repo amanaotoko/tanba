@@ -186,15 +186,22 @@ function toast(text, cls = '') {
   toastTimer = setTimeout(() => el.className = 'toast ' + cls, 3000);
 }
 
-$('theme').onclick = () => {
-  const light = document.documentElement.dataset.tanba === 'light';
-  document.documentElement.dataset.tanba = light ? 'dark' : 'light';
-  $('theme').querySelector('use').setAttribute('href', light ? '#i-sun' : '#i-moon');
-  localStorage.setItem('tanba-theme', light ? 'dark' : 'light');
-};
-if (localStorage.getItem('tanba-theme') === 'light') {
-  document.documentElement.dataset.tanba = 'light';
-  $('theme').querySelector('use').setAttribute('href', '#i-moon');
+// Единственный переключатель темы на всю программу: раньше он стоял в шапке
+// каждого экрана, а шапку заняли вкладки.
+for (const b of $('theme').children) {
+  b.onclick = () => {
+    document.documentElement.dataset.tanba = b.dataset.theme;
+    localStorage.setItem('tanba-theme', b.dataset.theme);
+    paintTheme();
+    // Кромка окна принадлежит системе, её перекрашивает форма.
+    if (window.tanbaTheme) window.tanbaTheme();
+  };
 }
+
+function paintTheme() {
+  const now = document.documentElement.dataset.tanba === 'light' ? 'light' : 'dark';
+  for (const b of $('theme').children) b.classList.toggle('on', b.dataset.theme === now);
+}
+paintTheme();
 
 load();

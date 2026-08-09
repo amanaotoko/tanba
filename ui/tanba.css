@@ -10,6 +10,11 @@
 --ok:#8FE9B7;--warn:#F5C85E;--err:#FF7A6B;--info:#7FE3F0;
 --shadow:0 8px 28px rgba(0,0,0,.55);--sh1:0 1px 2px rgba(0,0,0,.4);
 --stripe:rgba(255,255,255,.06);
+/* Полоса заголовка, панель управления и то, что в ней стоит.
+   Расстановка снята с проводника: полоса самая тёмная, панель светлее,
+   органы управления в ней ещё светлее. Но ступеньки берём свои, из палитры
+   выше: виндовый серый рядом с нашим почти чёрным читается как чужое окно. */
+--strip:var(--bg);--bar:var(--s1);--ctl:var(--s3);--ctlH:var(--s4);
 }
 :root[data-tanba="light"]{
 --bg:#EFEFEB;--s1:#FFFFFF;--s2:#F7F7F4;--s3:#EDEDE7;--s4:#E1E1DA;
@@ -19,6 +24,9 @@
 --ok:#2E9E68;--warn:#B07A12;--err:#D0402F;--info:#1E8DA0;
 --shadow:0 8px 24px rgba(18,18,22,.14);--sh1:0 1px 2px rgba(18,18,22,.08);
 --stripe:rgba(18,18,22,.05);
+/* В светлой теме ступеньки идут в другую сторону: панель светлее фона,
+   а органы управления на ней темнее её самой. */
+--strip:var(--bg);--bar:var(--s1);--ctl:var(--s3);--ctlH:var(--s4);
 }
 
 *{box-sizing:border-box}
@@ -44,14 +52,64 @@ input{font:inherit;color:inherit}
 
 /* ── Каркас ─────────────────────────────────────────────────────────── */
 
-.app{display:grid;grid-template-rows:48px 1fr 56px;height:100vh}
+.app{display:grid;grid-template-rows:40px 1fr 56px;height:100vh}
 
-.top{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--s1)}
-.brand{font-weight:600;letter-spacing:-.01em}
-.top .sep{width:1px;height:20px;background:var(--bd)}
 .muted{color:var(--t2);font-size:13px;line-height:18px}
 .dim{color:var(--t3);font-size:12px;line-height:16px}
 .grow{margin-left:auto}
+
+/* ── Полоса заголовка ───────────────────────────────────────────────── */
+/* Это и есть заголовок окна: система отдала его нам целиком, оставив себе
+   рамку, см. Host/MainWindow.Chrome.cs. Всё, что здесь нарисовано, лежит
+   там, где у обычного окна имя и кнопки.
+
+   app-region говорит окну, за что можно таскать. Свойство читает WebView2,
+   оно же даёт двойной клик для разворота и правое меню окна. */
+
+.titlebar{display:flex;align-items:flex-end;height:40px;padding-left:6px;
+  background:var(--strip);user-select:none;
+  app-region:drag;-webkit-app-region:drag}
+
+.tabs{display:flex;align-items:flex-end;gap:2px;min-width:0;
+  app-region:no-drag;-webkit-app-region:no-drag}
+
+/* Активная вкладка забирает цвет того, что лежит под ней, и срастается
+   с содержимым. Остальные остаются на фоне полосы. */
+.tab{display:flex;align-items:center;gap:8px;height:31px;padding:0 12px;
+  border-radius:8px 8px 0 0;font-size:13px;line-height:1;color:var(--t2);
+  text-decoration:none;white-space:nowrap}
+/* Значок чуть крупнее подписи: он опознаётся первым, по нему и находят
+   нужную вкладку, не читая. Цвет наследуется, поэтому у невыбранных
+   вкладок значок гаснет вместе с текстом. */
+.tab .ic{font-size:15px}
+.tab:hover{background:var(--s2);color:var(--t1)}
+.tab.on,.tab.on:hover{background:var(--bar);color:var(--t1)}
+
+/* Края окна. Ширина взята с системной рамки: меньше - не попасть мышью,
+   больше - начинаешь цеплять их вместо содержимого. */
+.grips{position:fixed;inset:0;z-index:100;pointer-events:none}
+.grip{position:absolute;pointer-events:auto;app-region:no-drag;-webkit-app-region:no-drag}
+.g-t{top:0;left:8px;right:8px;height:5px;cursor:ns-resize}
+.g-b{bottom:0;left:8px;right:8px;height:5px;cursor:ns-resize}
+.g-l{left:0;top:8px;bottom:8px;width:5px;cursor:ew-resize}
+.g-r{right:0;top:8px;bottom:8px;width:5px;cursor:ew-resize}
+.g-tl{top:0;left:0;width:8px;height:8px;cursor:nwse-resize}
+.g-br{right:0;bottom:0;width:8px;height:8px;cursor:nwse-resize}
+.g-tr{top:0;right:0;width:8px;height:8px;cursor:nesw-resize}
+.g-bl{left:0;bottom:0;width:8px;height:8px;cursor:nesw-resize}
+/* У развёрнутого окна краёв нет: тянуть его некуда. */
+:root.maxed .grips{display:none}
+
+/* Пустое место посередине: за него окно и таскают. */
+.tgrip{flex:1;min-width:24px;align-self:stretch}
+
+/* Размеры кнопок системные, 46 на 40: рука тянется в привычное место,
+   и промахиваться она не должна. Красный на закрытии тоже системный. */
+.wbtns{display:flex;align-self:stretch;app-region:no-drag;-webkit-app-region:no-drag}
+.wbtn{width:46px;display:flex;align-items:center;justify-content:center;color:var(--t1)}
+.wbtn .ic{font-size:24px;stroke-width:1.2}
+.wbtn:hover{background:var(--s4)}
+.wclose:hover{background:#C42B1C;color:#FFF}
 
 /* Панель слева, как в проводнике: сначала «где я», потом содержимое */
 .main{display:grid;grid-template-columns:292px 1fr;min-height:0}

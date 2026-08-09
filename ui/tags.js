@@ -234,15 +234,4 @@ function toast(text, cls = '') {
   toastTimer = setTimeout(() => el.className = 'toast ' + cls, 3000);
 }
 
-$('theme').onclick = () => {
-  const light = document.documentElement.dataset.tanba === 'light';
-  document.documentElement.dataset.tanba = light ? 'dark' : 'light';
-  $('theme').querySelector('use').setAttribute('href', light ? '#i-sun' : '#i-moon');
-  localStorage.setItem('tanba-theme', light ? 'dark' : 'light');
-};
-if (localStorage.getItem('tanba-theme') === 'light') {
-  document.documentElement.dataset.tanba = 'light';
-  $('theme').querySelector('use').setAttribute('href', '#i-moon');
-}
-
 load();

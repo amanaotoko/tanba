@@ -1,0 +1,155 @@
+'use strict';
+
+// Полоса заголовка окна. Вкладки лежат прямо в ней, как в проводнике 11:
+// заголовок мы забрали у системы себе, см. Host/MainWindow.Chrome.cs.
+//
+// Собирается кодом, а не переписывается в каждую страницу: экранов четыре,
+// и четыре копии одной шапки разъехались бы на первой же правке.
+
+(function () {
+  // Тема из прошлого запуска. Живёт здесь, потому что этот файл есть на всех
+  // экранах, а переключатель остался ровно один и лежит в Настройках.
+  if (localStorage.getItem('tanba-theme') === 'light') {
+    document.documentElement.dataset.tanba = 'light';
+  }
+
+  var SCREENS = [
+    { href: 'index.html', name: 'Разбор', icon: 't-inbox' },
+    { href: 'library.html', name: 'Библиотека', icon: 't-grid' },
+    { href: 'tags.html', name: 'Теги', icon: 't-tag' },
+    { href: 'settings.html', name: 'Настройки', icon: 't-cog' }
+  ];
+
+  var host = document.getElementById('chrome');
+  if (!host) return;
+
+  var here = location.pathname.split('/').pop() || 'index.html';
+
+  var tabs = SCREENS.map(function (s) {
+    return '<a class="tab' + (s.href === here ? ' on' : '') + '" href="' + s.href + '">' +
+           '<svg class="ic"><use href="#' + s.icon + '"></use></svg>' +
+           '<span>' + s.name + '</span></a>';
+  }).join('');
+
+  host.className = 'titlebar';
+  host.innerHTML =
+    '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +
+      '<symbol id="t-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/>' +
+        '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89' +
+        'A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>' +
+      '<symbol id="t-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/>' +
+        '<rect width="7" height="7" x="14" y="3" rx="1"/>' +
+        '<rect width="7" height="7" x="14" y="14" rx="1"/>' +
+        '<rect width="7" height="7" x="3" y="14" rx="1"/></symbol>' +
+      '<symbol id="t-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2' +
+        'v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58' +
+        'a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>' +
+      '<symbol id="t-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/>' +
+        '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08' +
+        'a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74' +
+        'l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25' +
+        'a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25' +
+        'a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08' +
+        'a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38' +
+        'a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></symbol>' +
+      '<symbol id="w-min" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>' +
+      '<symbol id="w-max" viewBox="0 0 24 24"><rect x="7.5" y="7.5" width="9" height="9" rx="1.5"/></symbol>' +
+      '<symbol id="w-rest" viewBox="0 0 24 24">' +
+        '<rect x="6.5" y="9.5" width="8" height="8" rx="1.5"/>' +
+        '<path d="M9.5 9.5v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/></symbol>' +
+      '<symbol id="w-close" viewBox="0 0 24 24"><path d="m7.5 7.5 9 9m0-9-9 9"/></symbol>' +
+    '</defs></svg>' +
+    '<nav class="tabs">' + tabs + '</nav>' +
+    '<div class="tgrip"></div>' +
+    '<div class="wbtns">' +
+      '<button class="wbtn" data-win="min" title="Свернуть">' +
+        '<svg class="ic"><use href="#w-min"></use></svg></button>' +
+      '<button class="wbtn" data-win="max" title="Развернуть">' +
+        '<svg class="ic"><use id="wMaxIcon" href="#w-max"></use></svg></button>' +
+      '<button class="wbtn wclose" data-win="close" title="Закрыть">' +
+        '<svg class="ic"><use href="#w-close"></use></svg></button>' +
+    '</div>';
+
+  var bridge = window.chrome && window.chrome.webview;
+
+  // В обычном браузере хоста нет, и кнопки окна там ничего не значат.
+  if (!bridge) {
+    host.querySelector('.wbtns').hidden = true;
+    return;
+  }
+
+  host.querySelectorAll('[data-win]').forEach(function (b) {
+    b.onclick = function () { bridge.postMessage({ kind: 'win.' + b.dataset.win }); };
+  });
+
+  // Кромку окна вокруг нашей шапки красит система, и цвет ей задаёт форма.
+  // Про тему знает только страница, поэтому сообщаем сами.
+  window.tanbaTheme = function () {
+    bridge.postMessage({
+      kind: 'theme',
+      light: document.documentElement.dataset.tanba === 'light'
+    });
+  };
+  window.tanbaTheme();
+
+  // Окно забрано у системы целиком, поэтому его края накрыты страницей и
+  // системе до них не дотянуться. Ловим их сами и просим Windows тянуть:
+  // дальше она делает всё обычным образом, вместе с прилипанием и рамкой.
+  var grips = document.createElement('div');
+  grips.className = 'grips';
+  grips.innerHTML = ['t', 'r', 'b', 'l', 'tl', 'tr', 'bl', 'br'].map(function (e) {
+    return '<div class="grip g-' + e + '" data-edge="' + e + '"></div>';
+  }).join('');
+  document.body.appendChild(grips);
+
+  // Перетаскивание ведём сами, от начала до конца. Отдать его системе нельзя:
+  // мышь захвачена процессом WebView2, и системный цикл изменения размера
+  // не получит ни движений, ни отпускания кнопки. Проверено, не работает.
+  var drag = null;
+
+  grips.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0) return;
+    var g = ev.target.closest('[data-edge]');
+    if (!g) return;
+    ev.preventDefault();
+    g.setPointerCapture(ev.pointerId);
+    drag = {
+      edge: g.dataset.edge,
+      x: ev.screenX,
+      y: ev.screenY,
+      // Окно живёт в настоящих пикселях, а страница в своих: при масштабе
+      // экрана 125% они расходятся, и окно тянулось бы медленнее мыши.
+      k: window.devicePixelRatio || 1
+    };
+    bridge.postMessage({ kind: 'win.resize' });
+  });
+
+  grips.addEventListener('pointermove', function (ev) {
+    if (!drag) return;
+    bridge.postMessage({
+      kind: 'win.sized',
+      edge: drag.edge,
+      dx: Math.round((ev.screenX - drag.x) * drag.k),
+      dy: Math.round((ev.screenY - drag.y) * drag.k)
+    });
+  });
+
+  function stopDrag() { drag = null; }
+  grips.addEventListener('pointerup', stopDrag);
+  grips.addEventListener('pointercancel', stopDrag);
+
+  // Развёрнуто окно или нет, знает только форма: значок и подсказка
+  // средней кнопки идут оттуда, а не угадываются страницей.
+  bridge.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.kind !== 'winState') return;
+
+    document.documentElement.classList.toggle('maxed', !!m.max);
+
+    var use = document.getElementById('wMaxIcon');
+    if (use) use.setAttribute('href', m.max ? '#w-rest' : '#w-max');
+
+    var btn = host.querySelector('[data-win="max"]');
+    if (btn) btn.title = m.max ? 'Вернуть прежний размер' : 'Развернуть';
+  });
+})();

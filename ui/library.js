@@ -102,7 +102,7 @@ function indexTags() {
 // ── Отрисовка ──────────────────────────────────────────────────────────
 
 function render() {
-  renderPicked();
+  renderScope();
   renderPanel();
   renderResults();
 
@@ -112,11 +112,10 @@ function render() {
   if (typeof updateStatus === 'function') updateStatus();
   for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === pick.mode);
 
-  // Внутри каталога отбора нет, там только навигация. Прячем всё,
-  // что относится к поиску, включая строку по имени в шапке.
-  // Дата уехала в панель, а панель внутри каталога и так подменяется деревом.
-  const inside = !!pick.cat;
-  $('mode').hidden = inside;
+  // Панель одинаковая везде. Раньше внутри каталога отбор прятался целиком,
+  // но панель, меняющая состав при каждом входе в папку, заставляет заново
+  // искать глазами кнопку, которая была тут секунду назад. Отбор внутри
+  // каталога работает: запрос и каталог складываются на стороне базы.
 
   // Сброс появляется только когда есть что сбрасывать: иначе это кнопка,
   // которая ничего не делает, и глаз к ней привыкает как к украшению.
@@ -125,8 +124,6 @@ function render() {
   const dirty = pick.tags.length || pick.exts.length || pick.text ||
                 pick.from || pick.to || pick.show.length === 1;
   $('reset').disabled = !dirty;
-  for (const id of ['reset', 'add', 'q']) $(id).hidden = inside;
-  document.querySelector('.find').hidden = inside;
 }
 
 // Вход в каталог. У каталогов иерархия настоящая, поэтому путь наверх честный,
@@ -141,8 +138,9 @@ async function enterCatalog(id) {
   load();
 }
 
-function renderPicked() {
-  const box = $('picked');
+// Что сейчас отобрано: путь по каталогам, снятые теги и форматы.
+function renderScope() {
+  const box = $('scope');
 
   // Крошки. Начинаются с «Библиотека»: это выход наружу, и он должен быть
   // виден, а не прятаться в крестике. Дальше путь по каталогам, он честный,
@@ -179,7 +177,7 @@ function renderPicked() {
 // Край растворяется только когда есть что прокручивать, и с той стороны,
 // где ещё осталось содержимое.
 function fadeEdges() {
-  const box = $('picked');
+  const box = $('scope');
   const more = box.scrollWidth - box.clientWidth;
   box.classList.toggle('fade-r', more > 1 && box.scrollLeft < more - 1);
   box.classList.toggle('fade-l', more > 1 && box.scrollLeft > 1);
@@ -455,14 +453,14 @@ function toggleExt(ext) {
 $('add').onclick = e => { e.stopPropagation(); openPop($('add')); };
 
 // Колесо крутит поле отбора вбок: ползунка нет, а прокрутка нужна.
-$('picked').addEventListener('wheel', e => {
-  const box = $('picked');
+$('scope').addEventListener('wheel', e => {
+  const box = $('scope');
   if (box.scrollWidth <= box.clientWidth) return;
   e.preventDefault();
   box.scrollLeft += e.deltaY || e.deltaX;
   fadeEdges();
 }, { passive: false });
-$('picked').addEventListener('scroll', fadeEdges);
+$('scope').addEventListener('scroll', fadeEdges);
 addEventListener('resize', fadeEdges);
 
 $('mode').onclick = e => {
@@ -585,13 +583,6 @@ document.addEventListener('keydown', e => {
 
 // ── Мелочи ─────────────────────────────────────────────────────────────
 
-$('theme').onclick = () => {
-  const light = document.documentElement.dataset.tanba === 'light';
-  document.documentElement.dataset.tanba = light ? 'dark' : 'light';
-  $('theme').querySelector('use').setAttribute('href', light ? '#i-sun' : '#i-moon');
-  localStorage.setItem('tanba-theme', light ? 'dark' : 'light');
-};
-
 let toastTimer;
 function toast(text, cls = '') {
   const el = $('toast');
@@ -625,12 +616,6 @@ function plural(n, one, few, many) {
   if (b > 1 && b < 5) return few;
   if (b === 1) return one;
   return many;
-}
-
-// Тема из прошлого запуска
-if (localStorage.getItem('tanba-theme') === 'light') {
-  document.documentElement.dataset.tanba = 'light';
-  $('theme').querySelector('use').setAttribute('href', '#i-moon');
 }
 
 loadSaved();

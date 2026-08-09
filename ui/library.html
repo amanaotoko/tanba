@@ -34,24 +34,11 @@
 
 <div class="app lib">
 
-  <header class="top">
-    <span class="brand">Tanba</span>
-    <span class="sep"></span>
-    <span class="muted">Библиотека</span>
-    <span class="grow"></span>
-    <a class="btn btn-ghost" href="tags.html">Теги</a>
-    <a class="btn btn-ghost" href="index.html">Разбор</a>
-    <a class="btn btn-ghost btn-icon" href="settings.html" title="Настройки">
-      <svg class="ic"><use href="#i-cog"></use></svg>
-    </a>
-    <button class="btn btn-ghost btn-icon" id="theme" title="Светлая или тёмная тема">
-      <svg class="ic"><use href="#i-sun"></use></svg>
-    </button>
-  </header>
+  <div id="chrome"></div>
 
-  <!-- Строка отбора. Это запрос, а не путь: теги равноправны, порядок ничего не значит. -->
+  <!-- Панель отбора. Порядок как в проводнике: слева органы управления,
+       посередине то, где ты сейчас и что отобрано, справа поиск по имени. -->
   <div class="pick">
-    <div class="pick-tags" id="picked"></div>
     <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор">
       <svg class="ic"><use href="#i-reset"></use></svg>
     </button>
@@ -62,6 +49,11 @@
       <button data-mode="and" title="Файл должен иметь все выбранные теги">И</button>
       <button data-mode="or" title="Файлу хватит любого из выбранных тегов">ИЛИ</button>
     </div>
+
+    <!-- Область отбора: путь по каталогам, снятые теги и форматы вместе.
+         Раньше называлась «теги», но тегов тут давно не только. -->
+    <div class="pick-scope" id="scope"></div>
+
     <label class="find">
       <svg class="ic"><use href="#i-search"></use></svg>
       <input id="q" placeholder="имя файла" spellcheck="false">
@@ -92,6 +84,7 @@
 
 <div class="drop" id="drop"><div class="zone">Отпусти, заберу в разбор</div></div>
 
+<script src="chrome.js"></script>
 <script src="library.js"></script>
 <script src="actions.js"></script>
 <script src="dragout.js"></script>

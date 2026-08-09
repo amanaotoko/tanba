@@ -21,18 +21,7 @@
 
 <div class="app set">
 
-  <header class="top">
-    <span class="brand">Tanba</span>
-    <span class="sep"></span>
-    <span class="muted">Настройки</span>
-    <span class="grow"></span>
-    <a class="btn btn-ghost" href="index.html">Разбор</a>
-    <a class="btn btn-ghost" href="library.html">Библиотека</a>
-    <a class="btn btn-ghost" href="tags.html">Теги</a>
-    <button class="btn btn-ghost btn-icon" id="theme" title="Светлая или тёмная тема">
-      <svg class="ic"><use href="#i-sun"></use></svg>
-    </button>
-  </header>
+  <div id="chrome"></div>
 
   <main class="sheet">
 
@@ -91,6 +80,22 @@
       </div>
     </section>
 
+    <!-- ── Оформление ──────────────────────────────────────────────── -->
+    <section class="block">
+      <h2>Оформление</h2>
+
+      <div class="row">
+        <div class="rt">
+          <div class="rh">Тема</div>
+          <div class="rd">Запоминается и держится на всех экранах.</div>
+        </div>
+        <div class="seg" id="theme">
+          <button data-theme="dark">Тёмная</button>
+          <button data-theme="light">Светлая</button>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Хранилище ───────────────────────────────────────────────── -->
     <section class="block">
       <h2>Хранилище</h2>
@@ -118,6 +123,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="chrome.js"></script>
 <script src="settings.js"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ namespace Tanba.Host;
 /// Перетащить файл в браузер или в папку можно только настоящим системным
 /// перетаскиванием в формате CF_HDROP. Его ведёт форма, HTML тут бессилен.
 /// </summary>
-public sealed class MainWindow : Form
+public sealed partial class MainWindow : Form
 {
     /// Тот же фон, что у страницы: иначе окно на старте секунду белое.
     private const string BackHex = "#0B0B0C";
@@ -161,6 +161,7 @@ public sealed class MainWindow : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
+        PaintFrame(light: false);
         if (_tray is not null) return;
 
         _tray = new Tray(
@@ -238,6 +239,15 @@ public sealed class MainWindow : Form
         w.Settings.IsStatusBarEnabled = false;      // полоска ссылки внизу чужеродна в окне
         w.Settings.IsSwipeNavigationEnabled = false; // жест назад уводил бы со страницы
 
+        // Отдаёт окну зоны из CSS app-region: без этого шапку нельзя было бы
+        // таскать мышью. Заодно приезжают правое меню окна и разворот
+        // по двойному клику, то есть всё, чего ждут от заголовка.
+        w.Settings.IsNonClientRegionSupportEnabled = true;
+
+        // Страниц четыре, и каждая рисует свою шапку. После перехода
+        // ей надо заново сказать, развёрнуто окно или нет.
+        w.NavigationCompleted += (_, _) => PostWinState();
+
         _web.Source = new Uri($"http://127.0.0.1:{_port}/");
     }
 
@@ -255,6 +265,25 @@ public sealed class MainWindow : Form
         DragOutMsg? msg;
         try { msg = JsonSerializer.Deserialize<DragOutMsg>(e.WebMessageAsJson, Json); }
         catch (JsonException) { return; }
+
+        // Кнопки окна нарисованы страницей, а делать умеет только форма.
+        switch (msg?.Kind)
+        {
+            case "win.min": WindowState = FormWindowState.Minimized; return;
+            case "win.max":
+                WindowState = WindowState == FormWindowState.Maximized
+                    ? FormWindowState.Normal
+                    : FormWindowState.Maximized;
+                return;
+            case "win.close": Close(); return;
+
+            // Края окна накрыты содержимым, поэтому перетаскивание ведёт страница.
+            case "win.resize": BeginResize(); return;
+            case "win.sized": ApplyResize(msg.Edge, msg.Dx, msg.Dy); return;
+
+            // Кромку окна красит система, а тему знает страница.
+            case "theme": PaintFrame(msg.Light); return;
+        }
 
         if (msg is not { Kind: "dragOut", Ids.Length: > 0 }) return;
 
@@ -472,6 +501,26 @@ public sealed class MainWindow : Form
             CopyDir(d, Path.Combine(dst, Path.GetFileName(d)));
     }
 
+    /// <summary>
+    /// Значок кнопки «развернуть» отличается от «вернуть», а состояние окна
+    /// знает только форма. Страница его не угадывает, ей сообщают.
+    /// </summary>
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        FitFrame();
+        PostWinState();
+    }
+
+    private void PostWinState()
+    {
+        var w = _web.CoreWebView2;
+        if (w is null) return;
+        var max = WindowState == FormWindowState.Maximized;
+        try { w.PostWebMessageAsJson($$"""{"kind":"winState","max":{{(max ? "true" : "false")}}}"""); }
+        catch (InvalidOperationException) { /* окно уже закрывается */ }
+    }
+
     /// <summary>Оверлей приёма показывает страница, но событие о файлах есть только у формы.</summary>
     private void Hint(bool on)
     {
@@ -501,5 +550,5 @@ public sealed class MainWindow : Form
         }
     }
 
-    private sealed record DragOutMsg(string? Kind, long[] Ids);
+    private sealed record DragOutMsg(string? Kind, long[] Ids, bool Light, string? Edge, int Dx, int Dy);
 }

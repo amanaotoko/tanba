@@ -25,26 +25,7 @@
 
 <div class="app">
 
-  <header class="top">
-    <span class="brand">Tanba</span>
-    <span class="sep"></span>
-    <span class="muted">Разбор</span>
-    <span class="dim" id="pending"></span>
-    <span class="grow"></span>
-    <span class="dim mono" id="statFiles"></span>
-    <span class="dim mono" id="statSize"></span>
-    <a class="btn btn-ghost" href="tags.html">Теги</a>
-    <a class="btn btn-ghost" href="library.html">Библиотека</a>
-    <button class="btn btn-ghost btn-icon" id="rescan" title="Пересканировать приём">
-      <svg class="ic"><use href="#i-refresh"></use></svg>
-    </button>
-    <a class="btn btn-ghost btn-icon" href="settings.html" title="Настройки">
-      <svg class="ic"><use href="#i-cog"></use></svg>
-    </a>
-    <button class="btn btn-ghost btn-icon" id="theme" title="Светлая или тёмная тема">
-      <svg class="ic"><use href="#i-sun"></use></svg>
-    </button>
-  </header>
+  <div id="chrome"></div>
 
   <div class="main">
     <aside class="side" id="side"></aside>
@@ -57,8 +38,14 @@
       Разложить <span class="count" id="fileN">0</span>
     </button>
     <button class="btn btn-ghost" id="laterBtn" title="Убрать из приёма без тегов, попадут в «Неразобранное»">Отложить</button>
+    <span class="dim" id="pending"></span>
     <span class="grow"></span>
     <span class="dim" id="hint"></span>
+    <span class="dim mono" id="statFiles"></span>
+    <span class="dim mono" id="statSize"></span>
+    <button class="btn btn-ghost btn-icon" id="rescan" title="Пересканировать приём">
+      <svg class="ic"><use href="#i-refresh"></use></svg>
+    </button>
   </footer>
 
 </div>
@@ -66,6 +53,7 @@
 <div class="toast" id="toast"></div>
 <div class="drop" id="drop"><div class="zone">Отпусти, заберу в разбор</div></div>
 
+<script src="chrome.js"></script>
 <script src="app.js"></script>
 <script src="dragout.js"></script>
 </body>

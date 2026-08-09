@@ -191,13 +191,6 @@ $('laterBtn').onclick = async () => {
 
 $('rescan').onclick = async () => { await api('/api/rescan', {}); await load(); };
 
-$('theme').onclick = () => {
-  const light = document.documentElement.dataset.tanba === 'light';
-  document.documentElement.dataset.tanba = light ? 'dark' : 'light';
-  $('theme').querySelector('use').setAttribute('href', light ? '#i-sun' : '#i-moon');
-  localStorage.setItem('tanba-theme', light ? 'dark' : 'light');
-};
-
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if (e.ctrlKey && e.key === 'a') { e.preventDefault(); state.inbox.forEach(f => sel.add(f.id)); load(); }
@@ -245,12 +238,6 @@ function plural(n, one, few, many) {
   if (b > 1 && b < 5) return few;
   if (b === 1) return one;
   return many;
-}
-
-// Тема из прошлого запуска
-if (localStorage.getItem('tanba-theme') === 'light') {
-  document.documentElement.dataset.tanba = 'light';
-  $('theme').querySelector('use').setAttribute('href', '#i-moon');
 }
 
 load();
