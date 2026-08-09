@@ -1,6 +1,6 @@
 /* Редактор тегов. Только то, чего нет в tanba.css и library.css. */
 
-.app.tags{grid-template-rows:40px 1fr 28px}
+.app.tags{grid-template-rows:40px auto 1fr 28px}
 
 /* Колонками, потому что групп немного, а список тегов в каждой длинный:
    в один столбец пришлось бы всё время прокручивать. */

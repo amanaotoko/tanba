@@ -25,8 +25,10 @@ a.btn{text-decoration:none}
    так эта строка читается как панель управления, а не как часть списка.
    Подменяем здесь сами токены поверхностей, и органы управления внутри
    перекрашиваются сами, без правки каждого по отдельности. */
-.pick{display:flex;align-items:center;gap:8px;padding:10px 16px;min-width:0;
-  background:var(--bar);--s3:var(--ctl);--s4:var(--ctlH)}
+/* Высота снята с проводника: полоса 48, органы управления 32, по 8 сверху
+   и снизу. Держим те же цифры, чтобы окно не выбивалось из системы. */
+.pick{display:flex;align-items:center;gap:8px;padding:8px 16px;min-width:0;
+  min-height:48px;background:var(--bar);--s3:var(--ctl);--s4:var(--ctlH)}
 .pick > :not(.pick-scope){flex:none}
 
 /* Всё в панели одной высоты и с одним скруглением, эталон - поле поиска.
@@ -38,10 +40,10 @@ a.btn{text-decoration:none}
 .pick > .find,
 .pick > .seg,
 .pick > .mini,
-.pick > .pill{height:34px;border-radius:8px}
+.pick > .pill{height:32px;border-radius:8px}
 
 .pick > .mini-icon,
-.pick > .pill-add{width:34px;justify-content:center}
+.pick > .pill-add{width:32px;justify-content:center}
 
 /* Сброс тут не призрачный, как в других местах: в ровном ряду залитых
    кнопок единственная прозрачная читается дыркой, а не скромностью. */
@@ -52,7 +54,7 @@ a.btn{text-decoration:none}
 .pick > .pill-add .ic{font-size:16px}
 
 .pick > .seg{padding:3px}
-.pick > .seg button{height:28px;border-radius:6px;padding:0 13px}
+.pick > .seg button{height:26px;border-radius:6px;padding:0 13px}
 
 /* Поле отбора того же цвета, что И/ИЛИ: вся левая часть читается как одно
    место «вот что я ищу», а не как чипы, рассыпанные по пустому фону. */
@@ -60,7 +62,7 @@ a.btn{text-decoration:none}
    в поле 34, значит по 4 со всех сторон. Раньше по бокам стояло 10,
    и содержимое сидело в поле криво. */
 .pick-scope{flex:1;min-width:0;display:flex;align-items:center;gap:6px;
-  height:34px;padding:0 4px;background:var(--s3);
+  height:32px;padding:0 4px;background:var(--s3);
   overflow-x:auto;overflow-y:hidden;
   scrollbar-width:none}
 .pick-scope::-webkit-scrollbar{display:none}
@@ -76,7 +78,7 @@ a.btn{text-decoration:none}
 /* Выбранный тег показан инверсией: тёмный текст на светлой плашке.
    Скругление мягкое, а не пилюлей: вокруг теперь всё на скруглении 8,
    и круглые бока среди них выбивались. */
-.pill{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 5px 0 10px;
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 5px 0 10px;
   border-radius:6px;background:var(--t1);color:var(--bg);font-size:13px;font-weight:600;line-height:1}
 .pill .x{display:flex;padding:3px;border-radius:4px;color:inherit;opacity:.55}
 .pill .x:hover{opacity:1;background:rgba(0,0,0,.14)}

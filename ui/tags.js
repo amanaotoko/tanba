@@ -34,8 +34,20 @@ async function load() {
   render();
 }
 
+// Поиск по имени тега. Групп до десятка, а тегов в одной группе бывает
+// несколько десятков, и глазами их уже не пробежать.
+let find = '';
+
 function render() {
-  const groups = tree.groups.map(g => `
+  // При поиске показываем только совпавшие теги и только те группы,
+  // где что-то нашлось: пустые карточки групп сбивают счёт находкам.
+  const shown = find
+    ? tree.groups
+        .map(g => ({ ...g, tags: g.tags.filter(t => t.name.toLowerCase().includes(find)) }))
+        .filter(g => g.tags.length)
+    : tree.groups;
+
+  const groups = shown.map(g => `
     <div class="gcard" data-group="${g.id}">
       <input class="gname" value="${esc(g.name)}" spellcheck="false">
       <div class="gflags">
@@ -64,7 +76,11 @@ function render() {
       </div>
     </div>`).join('');
 
-  $('editor').innerHTML = groups + `
+  // Карточку новой группы при поиске не показываем: заводить группу,
+  // пока ищешь тег, никто не собирается, а находки она сбивает.
+  $('editor').innerHTML = find
+    ? (groups || `<p class="dim">Такого тега нет</p>`)
+    : groups + `
     <div class="gcard new">
       <input class="gname" placeholder="новая группа…" id="newGroup" spellcheck="false">
       <p class="dim" style="margin:6px 0 0">Enter создаёт группу</p>
@@ -73,10 +89,14 @@ function render() {
   wire();
 
   const nt = tree.groups.reduce((s, g) => s + g.tags.length, 0);
-  $('stCount').textContent =
-    `${tree.groups.length} ${plural(tree.groups.length, 'группа', 'группы', 'групп')}, ` +
-    `${nt} ${plural(nt, 'тег', 'тега', 'тегов')}`;
+  const found = shown.reduce((s, g) => s + g.tags.length, 0);
+  $('stCount').textContent = find
+    ? `Нашлось ${found} ${plural(found, 'тег', 'тега', 'тегов')} из ${nt}`
+    : `${tree.groups.length} ${plural(tree.groups.length, 'группа', 'группы', 'групп')}, ` +
+      `${nt} ${plural(nt, 'тег', 'тега', 'тегов')}`;
 }
+
+$('q').oninput = () => { find = $('q').value.trim().toLowerCase(); render(); };
 
 function wire() {
   // Имя группы. Правится на месте, сохраняется по уходу фокуса или Enter.
@@ -157,6 +177,8 @@ function wire() {
     b.onclick = () => delGroup(+b.dataset.delgroup);
   });
 
+  // При поиске карточки новой группы нет, и это нормально.
+  if (!$('newGroup')) return;
   $('newGroup').onkeydown = async e => {
     if (e.key !== 'Enter' || !$('newGroup').value.trim()) return;
     await send('POST', '/api/groups', { name: $('newGroup').value.trim(), isMulti: true });

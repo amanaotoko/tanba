@@ -5,6 +5,10 @@ let state = { inbox: [], groups: [], stats: {} };
 let sel = new Set();          // выделенные файлы
 let anchor = null;            // якорь для выделения с Shift
 
+// Отбор приёма. Имена не pick и не toggleTag: на этом экране так уже
+// называются выбор файлов и навешивание тега, и путать их нельзя.
+let query = { tags: [], mode: 'and', text: '' };
+
 const $ = id => document.getElementById(id);
 const api = async (path, body) => {
   const r = await fetch(API + path, body === undefined ? {} : {
@@ -31,6 +35,7 @@ function render() {
   renderFiles();
   renderSide();
   renderBar();
+  renderScope();
 
   $('pending').textContent = state.pending
     ? `${state.pending} ${plural(state.pending, 'файл', 'файла', 'файлов')} ждёт`
@@ -60,10 +65,24 @@ function renderFiles() {
     return;
   }
 
+  // Пусто по отбору это не то же самое, что пусто вообще: в первом случае
+  // человеку надо сказать, что файлы есть, просто их сейчас не видно.
+  const list = visible();
+  if (!list.length) {
+    box.innerHTML = `
+      <div class="empty">
+        <div class="circle"><svg class="ic"><use href="#i-search"></use></svg></div>
+        <h2>Под отбор ничего не подошло</h2>
+        <p>В приёме ${state.inbox.length} ${plural(state.inbox.length, 'файл', 'файла', 'файлов')},
+           но ни один не совпал. Сбрось отбор, чтобы увидеть всё.</p>
+      </div>`;
+    return;
+  }
+
   const tagName = {};
   for (const g of state.groups) for (const t of g.tags) tagName[t.id] = t.name;
 
-  box.innerHTML = `<div class="grid">` + state.inbox.map(f => `
+  box.innerHTML = `<div class="grid">` + list.map(f => `
     <div class="card${sel.has(f.id) ? ' sel' : ''}" data-id="${f.id}" draggable="true">
       <div class="thumb">
         <svg class="ic"><use href="#${ICON(f.ext)}"></use></svg>
@@ -190,6 +209,117 @@ $('laterBtn').onclick = async () => {
 };
 
 $('rescan').onclick = async () => { await api('/api/rescan', {}); await load(); };
+
+// ── Отбор приёма ───────────────────────────────────────────────────────
+// Считается на месте, без сервера: и список приёма, и теги каждого файла
+// уже приехали с /api/state, спрашивать их заново незачем.
+
+function visible() {
+  const q = query.text.trim().toLowerCase();
+  return state.inbox.filter(f => {
+    if (q && !f.name.toLowerCase().includes(q)) return false;
+    if (!query.tags.length) return true;
+    const has = id => f.tags.includes(id);
+    return query.mode === 'and' ? query.tags.every(has) : query.tags.some(has);
+  });
+}
+
+function nameOf(tagId) {
+  for (const g of state.groups) for (const t of g.tags) if (t.id === tagId) return t.name;
+  return '?';
+}
+
+function toggleQueryTag(id) {
+  const i = query.tags.indexOf(id);
+  if (i < 0) query.tags.push(id); else query.tags.splice(i, 1);
+  render();
+}
+
+function renderScope() {
+  const box = $('scope');
+  box.innerHTML = query.tags.map(id => `
+    <span class="pill">${esc(nameOf(id))}<button class="x" data-drop="${id}" title="Убрать тег">
+      <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('');
+  box.querySelectorAll('[data-drop]').forEach(el => {
+    el.onclick = () => toggleQueryTag(+el.dataset.drop);
+  });
+
+  for (const b of $('mode').children) b.classList.toggle('on', b.dataset.mode === query.mode);
+  // Сброс гаснет, а не пропадает: исчезающая кнопка двигала бы всю строку.
+  $('reset').disabled = !(query.tags.length || query.text);
+}
+
+$('q').oninput = () => { query.text = $('q').value; render(); };
+for (const b of $('mode').children) {
+  b.onclick = () => { query.mode = b.dataset.mode; render(); };
+}
+$('reset').onclick = () => {
+  query.tags = [];
+  query.text = '';
+  $('q').value = '';
+  render();
+};
+
+// ── Выбор тега для отбора ──────────────────────────────────────────────
+
+let popRows = [], popCur = 0;
+
+function openPop() {
+  const r = $('add').getBoundingClientRect();
+  const pop = $('pop');
+  pop.hidden = false;
+  pop.style.left = Math.min(r.left, innerWidth - 276) + 'px';
+  pop.style.top = Math.min(r.bottom + 6, innerHeight - 320) + 'px';
+  $('popQ').value = '';
+  fillPop();
+  $('popQ').focus();
+}
+
+function closePop() { $('pop').hidden = true; }
+
+function fillPop() {
+  const s = $('popQ').value.trim().toLowerCase();
+  popRows = [];
+  for (const g of state.groups)
+    for (const t of g.tags)
+      if (!query.tags.includes(t.id) && (!s || t.name.toLowerCase().includes(s)))
+        popRows.push({ t, g });
+  popCur = 0;
+
+  $('popList').innerHTML = popRows.length
+    ? popRows.map((r, i) => `
+      <button class="pop-row${i === popCur ? ' cur' : ''}" data-p="${r.t.id}">
+        <span class="nm">${esc(r.t.name)}</span>
+        <span class="gr">${esc(r.g.name)}</span>
+      </button>`).join('')
+    : `<div class="pop-none">Такого тега нет</div>`;
+
+  $('popList').querySelectorAll('[data-p]').forEach(el => {
+    el.onclick = () => { closePop(); toggleQueryTag(+el.dataset.p); };
+  });
+}
+
+$('add').onclick = openPop;
+$('popQ').oninput = fillPop;
+$('popQ').onkeydown = e => {
+  if (e.key === 'Escape') { closePop(); return; }
+  if (e.key === 'Enter') {
+    if (popRows[popCur]) { closePop(); toggleQueryTag(popRows[popCur].t.id); }
+    return;
+  }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  popCur = Math.max(0, Math.min(popRows.length - 1, popCur + (e.key === 'ArrowDown' ? 1 : -1)));
+  const rows = $('popList').children;
+  for (let i = 0; i < rows.length; i++) rows[i].classList.toggle('cur', i === popCur);
+  if (rows[popCur]) rows[popCur].scrollIntoView({ block: 'nearest' });
+};
+
+// Клик мимо закрывает. Цель проверяем через closest: попасть можно
+// и в значок внутри кнопки, а это уже другой элемент.
+document.addEventListener('mousedown', e => {
+  if (!$('pop').hidden && !$('pop').contains(e.target) && !e.target.closest('#add')) closePop();
+});
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;

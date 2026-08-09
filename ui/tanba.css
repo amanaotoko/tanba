@@ -52,7 +52,10 @@ input{font:inherit;color:inherit}
 
 /* ── Каркас ─────────────────────────────────────────────────────────── */
 
-.app{display:grid;grid-template-rows:40px 1fr 56px;height:100vh}
+/* Полоса заголовка, панель управления, содержимое, строка снизу.
+   Панель есть на всех экранах: без неё активной вкладке не с чем срастаться
+   и она висит в воздухе. Содержимое у панели своё на каждом экране. */
+.app{display:grid;grid-template-rows:40px auto 1fr 56px;height:100vh}
 
 .muted{color:var(--t2);font-size:13px;line-height:18px}
 .dim{color:var(--t3);font-size:12px;line-height:16px}
