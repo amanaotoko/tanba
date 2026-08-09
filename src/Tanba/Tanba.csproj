@@ -6,8 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Tanba</RootNamespace>
     <AssemblyName>Tanba</AssemblyName>
-    <!-- Одна цифра на всю сборку: её же показывает экран настроек
-         и её же ждёт vpk при упаковке релиза. -->
+    <!-- Запасное значение для отладочной сборки. Настоящую версию релиза
+         задаёт build.ps1 через /p:Version, и она же уходит в имя пакета,
+         поэтому править её здесь бесполезно. -->
     <Version>0.1.0</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- Требуется генератору LibraryImport для P/Invoke в Shell/Native.cs -->
