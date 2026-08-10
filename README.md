@@ -104,3 +104,20 @@ contents of the catalog stay readable even if the program itself is gone.
 Built for one design team and used daily. Interface and documentation for the
 people using it are in Russian; the code and this page are in English.
 See [DEVELOPING.md](DEVELOPING.md) if you want to build or change it.
+
+## Licence
+
+Tanba is free software under the **GNU General Public License, version 3**. The
+full text is in [LICENSE](LICENSE). You may use, study, change and pass it on;
+if you distribute a changed version, you have to pass the source on with it.
+
+> This program is distributed in the hope that it will be useful, but WITHOUT
+> ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+> FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+The choice was made by the file-type icons rather than by preference. They come
+from the [Suru++](https://github.com/suru-plus/suru-plus) theme, which is
+GPL-3, and it is close to the only icon set in existence that draws CorelDRAW
+rather than falling back to a blank sheet. In a catalog that is two thirds
+`.cdr`, that decides it. See [ui/icons/NOTICE.md](ui/icons/NOTICE.md) for what
+else was considered and why each alternative failed.
