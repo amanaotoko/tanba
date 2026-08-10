@@ -48,9 +48,19 @@ function render() {
   window.tanbaCmdSync?.();
 }
 
-// Что командная панель должна знать про этот экран, см. cmdbar.js.
-// Каталогов в приёме не бывает, поэтому ни входа внутрь, ни своего
-// удаления отсюда не отдаём: панель обойдётся без них.
+/// Быстрая перерисовка одного лишь выделения. Рамка меняет его десятки раз
+/// в секунду, и ходить за состоянием на сервер на каждое движение нельзя.
+function paintSel() {
+  document.querySelectorAll('#files .card').forEach(el => {
+    el.classList.toggle('sel', sel.has(+el.dataset.id));
+  });
+  window.tanbaCmdSync?.();
+}
+
+// Что командная панель и выделение должны знать про этот экран,
+// см. cmdbar.js и picking.js. Каталогов в приёме не бывает, поэтому меню
+// здесь обычное, без входа внутрь и без «в каталог»: класть в каталог
+// можно только то, что уже разложено.
 window.tanbaCmd = {
   selected: () => [...sel],
   byId: id => state.inbox.find(f => f.id === id),
@@ -58,6 +68,16 @@ window.tanbaCmd = {
   tagName: id => {
     for (const g of state.groups) for (const t of g.tags) if (t.id === id) return t.name;
     return '';
+  },
+
+  box: () => $('files'),
+  setSel: list => { sel.clear(); for (const id of list) sel.add(id); paintSel(); },
+  // Флажки тегов слева считает сервер под выделение, поэтому после того,
+  // как оно устоялось, экран надо перечитать.
+  settled: () => load(),
+
+  extra: (act, file) => {
+    if (act === 'reveal') return api('/api/library/reveal', { id: file.id });
   },
 };
 

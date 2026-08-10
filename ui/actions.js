@@ -20,9 +20,11 @@ function applySel() {
   window.tanbaCmdSync?.();
 }
 
-// Что командная панель должна знать про этот экран, см. cmdbar.js.
-// Каталог здесь настоящий, поэтому отдаём и вход внутрь, и своё удаление:
-// у каталога нет байтов, открывать и стирать его надо иначе, чем файл.
+// Что командная панель и выделение должны знать про этот экран,
+// см. cmdbar.js и picking.js.
+//
+// Каталог здесь настоящий, поэтому меню у него своё: открывать его значит
+// войти внутрь, а удалять значит порвать связь, файлы при этом остаются.
 window.tanbaCmd = {
   selected: () => [...sel],
   byId,
@@ -30,6 +32,20 @@ window.tanbaCmd = {
   tagName: id => name(id),
   enter: id => enterCatalog(id),
   delCatalog: file => deleteCatalogModal(file),
+
+  box: () => $('results'),
+  setSel: list => { sel.clear(); for (const id of list) sel.add(id); applySel(); },
+
+  menu: file => file?.kind === 'catalog'
+    ? ['enter', 'rename', 'tags', '-', 'delcat']
+    : ['open', 'reveal', 'rename', 'tags', 'tocat', '-', 'del'],
+
+  extra: (act, file) => {
+    if (act === 'enter') return enterCatalog(file.id);
+    if (act === 'reveal') return reveal(file.id);
+    if (act === 'tocat') return toast('Выбор каталога делаю следующим');
+    if (act === 'delcat') return deleteCatalogModal(file);
+  },
 };
 
 // Строка состояния как в проводнике: сколько всего, сколько выделено
@@ -87,178 +103,12 @@ $('results').addEventListener('click', e => {
   pickCard(+card.dataset.id, e);
 });
 
-// ── Рамка выделения ────────────────────────────────────────────────────
-// Зажал на пустом месте и обвёл. Держим точки в координатах содержимого,
-// а не окна: иначе при автопрокрутке рамка уползает от того, что обводишь.
-
-(function marquee() {
-  const box = $('results');
-  let band = null, base = null, from = null, scroller = 0;
-
-  const point = e => ({
-    x: e.clientX - box.getBoundingClientRect().left + box.scrollLeft,
-    y: e.clientY - box.getBoundingClientRect().top + box.scrollTop,
-  });
-
-  function draw(to) {
-    const r = box.getBoundingClientRect();
-    const x1 = Math.min(from.x, to.x), x2 = Math.max(from.x, to.x);
-    const y1 = Math.min(from.y, to.y), y2 = Math.max(from.y, to.y);
-
-    band.style.left = (r.left + x1 - box.scrollLeft) + 'px';
-    band.style.top = (r.top + y1 - box.scrollTop) + 'px';
-    band.style.width = (x2 - x1) + 'px';
-    band.style.height = (y2 - y1) + 'px';
-
-    // Пересечение считаем в координатах окна: карточки и рамка там оба.
-    const bb = band.getBoundingClientRect();
-    sel.clear();
-    base.forEach(id => sel.add(id));
-    document.querySelectorAll('#results .card').forEach(el => {
-      const c = el.getBoundingClientRect();
-      const hit = c.left < bb.right && c.right > bb.left && c.top < bb.bottom && c.bottom > bb.top;
-      if (hit) sel.add(+el.dataset.id);
-    });
-    applySel();
-  }
-
-  box.addEventListener('mousedown', e => {
-    // Только левой, только по пустому месту: на карточке живёт перетаскивание.
-    if (e.button !== 0 || e.target.closest('.card')) return;
-    e.preventDefault();
-
-    from = point(e);
-    base = (e.ctrlKey || e.metaKey || e.shiftKey) ? [...sel] : [];
-    let started = false;
-    let last = e;
-
-    const move = ev => {
-      last = ev;
-      // Порог, чтобы обычный клик по пустому месту не считался рамкой.
-      if (!started) {
-        const p = point(ev);
-        if (Math.abs(p.x - from.x) < 4 && Math.abs(p.y - from.y) < 4) return;
-        started = true;
-        band = document.createElement('div');
-        band.className = 'marquee';
-        document.body.appendChild(band);
-      }
-      draw(point(ev));
-    };
-
-    // Тянем за нижний край: список прокручивается сам, как в проводнике.
-    scroller = setInterval(() => {
-      if (!started) return;
-      const r = box.getBoundingClientRect();
-      const edge = 40;
-      let dy = 0;
-      if (last.clientY > r.bottom - edge) dy = last.clientY - (r.bottom - edge);
-      else if (last.clientY < r.top + edge) dy = last.clientY - (r.top + edge);
-      if (!dy) return;
-      box.scrollTop += Math.sign(dy) * Math.min(24, Math.abs(dy) / 2);
-      draw(point(last));
-    }, 16);
-
-    const up = () => {
-      clearInterval(scroller);
-      removeEventListener('mousemove', move);
-      removeEventListener('mouseup', up);
-      band?.remove();
-      band = null;
-      // Клик по пустому месту без движения снимает выделение.
-      if (!started && !base.length) { sel.clear(); applySel(); }
-    };
-
-    addEventListener('mousemove', move);
-    addEventListener('mouseup', up);
-  });
-})();
-
-// ── Контекстное меню ───────────────────────────────────────────────────
-
-let ctx = null;
-
-function closeCtx() { ctx?.remove(); ctx = null; }
-
-$('results').addEventListener('contextmenu', e => {
-  const card = e.target.closest('.card');
-  if (!card) return;
-  e.preventDefault();
-
-  const id = +card.dataset.id;
-  // Правый клик по невыделенному берёт его одного, по выделенному
-  // оставляет всю пачку: так же ведёт себя проводник.
-  if (!sel.has(id)) { sel.clear(); sel.add(id); anchor = id; applySel(); }
-
-  showCtx(e.clientX, e.clientY, byId(id));
-});
-
-function showCtx(x, y, file) {
-  closeCtx();
-  const many = sel.size > 1;
-  const isCat = file && file.kind === 'catalog';
-
-  const item = (icon, label, act, cls = '') =>
-    `<button data-act="${act}" class="${cls}">
-       <svg class="ic"><use href="#${icon}"></use></svg>${label}</button>`;
-
-  const rows = isCat
-    ? [item('i-folder', 'Открыть', 'enter'),
-       item('i-pencil', 'Переименовать', 'rename'),
-       item('i-tag', 'Настроить теги', 'tags'),
-       '<div class="line"></div>',
-       item('i-trash', 'Удалить каталог', 'delcat', 'danger')]
-    : [item('i-play', many ? `Открыть (${sel.size})` : 'Открыть', 'open'),
-       item('i-search', 'Показать в проводнике', 'reveal'),
-       item('i-pencil', 'Переименовать', 'rename'),
-       item('i-tag', many ? `Настроить теги (${sel.size})` : 'Настроить теги', 'tags'),
-       item('i-folder', 'В каталог', 'tocat'),
-       '<div class="line"></div>',
-       item('i-trash', many ? `Удалить (${sel.size})` : 'Удалить', 'del', 'danger')];
-
-  ctx = document.createElement('div');
-  ctx.className = 'ctx';
-  ctx.innerHTML = rows.join('');
-  document.body.appendChild(ctx);
-
-  // Меню не должно вылезать за окно: у нижнего края разворачиваем вверх.
-  const w = ctx.offsetWidth, h = ctx.offsetHeight;
-  ctx.style.left = Math.min(x, innerWidth - w - 8) + 'px';
-  ctx.style.top = (y + h > innerHeight - 8 ? Math.max(8, y - h) : y) + 'px';
-
-  ctx.querySelectorAll('[data-act]').forEach(b => {
-    b.onclick = ev => { ev.stopPropagation(); closeCtx(); runAct(b.dataset.act, file); };
-  });
-}
-
-addEventListener('click', closeCtx);
-addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); closeModal(); } });
-addEventListener('resize', closeCtx);
-
-// ── Действия ───────────────────────────────────────────────────────────
-
-async function runAct(act, file) {
-  try {
-    // Открыть, переименовать, теги и удалить живут в cmdbar.js: те же четыре
-    // действия вынесены на командную панель, и держать их в двух местах
-    // значит однажды получить кнопку и пункт меню с разным поведением.
-    if (act === 'open' || act === 'rename' || act === 'tags' || act === 'del')
-      return cmdAct(act);
-
-    if (act === 'enter') return enterCatalog(file.id);
-    if (act === 'reveal') return reveal(file.id);
-    if (act === 'tocat') return toast('Выбор каталога делаю следующим');
-    if (act === 'delcat') return deleteCatalogModal(file);
-  } catch (e) {
-    toast('Не вышло: ' + e.message, 'err');
-  }
-}
-
 // ── Модалки ────────────────────────────────────────────────────────────
 
 let modal = null;
 
 function closeModal() { modal?.remove(); modal = null; }
+addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 function openModal(html) {
   closeModal();
