@@ -31,6 +31,11 @@ CREATE TABLE files (
   sha256      TEXT,
   phash       TEXT,                     -- похожие картинки (перцептивный хеш)
 
+  -- Номер файла на томе. Переживает переименование и перемещение, поэтому
+  -- по нему файл узнаётся после того, как его переложили мимо программы.
+  -- Хранится вместе с серийным номером тома, см. Shell/Native.FileId.
+  file_id     TEXT,
+
   width       INTEGER,
   height      INTEGER,
   duration_ms INTEGER,
@@ -43,6 +48,11 @@ CREATE TABLE files (
   added_at    INTEGER NOT NULL,         -- когда попал в библиотеку
   seen_at     INTEGER,                  -- когда сканер последний раз его видел
   is_missing  INTEGER NOT NULL DEFAULT 0,
+
+  -- Файл уехал за пределы хранилища, но остался на диске: сюда пишем, где он
+  -- теперь лежит. Внутри хранилища переезд отслеживается молча, сменой
+  -- rel_path, и сюда не попадает.
+  moved_to    TEXT,
   note        TEXT,
 
   -- Обложка каталога. Берётся с лучшего рендера внутри, а не с исходника:
@@ -51,6 +61,7 @@ CREATE TABLE files (
 );
 
 CREATE INDEX ix_files_sha     ON files(sha256);
+CREATE INDEX ix_files_fileid  ON files(file_id);
 CREATE INDEX ix_files_phash   ON files(phash);
 CREATE INDEX ix_files_ext     ON files(ext);
 CREATE INDEX ix_files_added   ON files(added_at);

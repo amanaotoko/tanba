@@ -151,6 +151,14 @@ a.btn{text-decoration:none}
 /* Каталог в сетке отличается только значком и подписью «сколько внутри» */
 .card-cat .thumb{color:var(--t2)}
 
+/* Файл уехал из хранилища, но нашёлся на диске. Показываем как обычно,
+   но приглушённо и с меткой: он больше не попадает в резервную копию,
+   и делать вид, что всё в порядке, было бы враньём. */
+.card-away .thumb img{opacity:.45}
+.card-away .name{color:var(--t2)}
+.away{position:absolute;left:6px;bottom:6px;z-index:3;padding:1px 6px;border-radius:5px;
+  background:var(--warn);color:var(--ink);font-size:11px;line-height:15px;font-weight:600}
+
 /* Выпадающий список. Взят из кита, раздел «Поиск и фильтры», «Сортировка». */
 .dd{position:relative}
 .dd-btn{display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 10px;

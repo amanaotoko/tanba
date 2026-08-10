@@ -123,7 +123,8 @@ public static class Library
                 {sel}
                 SELECT f.id, f.orig_name, f.ext, f.size, f.added_at, f.file_ctime, f.file_mtime,
                        f.kind, f.cover_file_id,
-                       (SELECT count(*) FROM catalog_items ci WHERE ci.catalog_id = f.id)
+                       (SELECT count(*) FROM catalog_items ci WHERE ci.catalog_id = f.id),
+                       f.moved_to
                 FROM files f JOIN sel ON sel.id = f.id
                 ORDER BY CASE WHEN f.kind = 'catalog' THEN 0 ELSE 1 END, f.added_at DESC, f.id DESC
                 LIMIT $take OFFSET $skip
@@ -131,7 +132,7 @@ public static class Library
             using (var r = cmd.ExecuteReader())
                 while (r.Read())
                     rows.Add(new Row(r.GetInt64(0), r.GetString(1), r.Str(2), r.Num(3), r.GetInt64(4),
-                        r.Num(5), r.Num(6), r.GetString(7), r.Num(8), r.GetInt64(9)));
+                        r.Num(5), r.Num(6), r.GetString(7), r.Num(8), r.GetInt64(9), r.Str(10)));
 
             var perFile = TagsOfMany(c, rows.Select(x => x.Id).ToList());
 
@@ -155,6 +156,10 @@ public static class Library
                     kind = x.Kind,
                     coverId = x.CoverId,
                     count = x.Kind == "catalog" ? x.Count : (long?)null,
+                    // Файл уехал из хранилища, но нашёлся на диске. Показываем
+                    // его как обычно, но с пометкой: молча делать вид, что всё
+                    // на месте, нельзя, он больше не попадает в резервную копию.
+                    movedTo = x.MovedTo,
                     tags = perFile.GetValueOrDefault(x.Id, []),
                 }),
             });
@@ -561,7 +566,7 @@ public static class Library
 /// <summary>Строка выдачи. Каталог приезжает здесь же, отличается полем Kind.</summary>
 internal sealed record Row(
     long Id, string Name, string? Ext, long? Size, long AddedAt,
-    long? Ctime, long? Mtime, string Kind, long? CoverId, long Count);
+    long? Ctime, long? Mtime, string Kind, long? CoverId, long Count, string? MovedTo);
 
 public sealed record SavedCmd(string? Name, string? Mode, long[]? TagIds, string[]? Exts);
 public sealed record RevealCmd(long Id);

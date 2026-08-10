@@ -53,6 +53,12 @@ var ingest = new Ingest(cfg, repo, thumbs);
 var safety = new Safety(cfg, repo);
 var watcher = new InboxWatcher(cfg, ingest);
 
+// Сторож хранилища: узнаёт переложенные и переименованные мимо программы
+// файлы по номеру тома и подбирает то, что положили в обход приёма.
+var storeScan = new StoreScan(cfg, repo);
+var storeWatch = new StoreWatcher(cfg, storeScan);
+storeWatch.Done += r => Console.WriteLine($"Хранилище: {r}");
+
 safety.BackupDaily();
 
 Console.WriteLine($"Tanba {Updater.Version}, хранилище {cfg.Root}");
@@ -182,6 +188,19 @@ app.MapPost("/api/rescan", () =>
     return Results.Ok(new { pending = watcher.Pending });
 });
 
+// Обход хранилища руками. Обычно его запускает сторож сам, но кнопка нужна:
+// после большой уборки в проводнике ждать затишья незачем.
+app.MapPost("/api/storescan", () =>
+{
+    var r = storeScan.Run();
+    return Results.Ok(new
+    {
+        followed = r.Followed, movedOut = r.MovedOut,
+        lost = r.Lost, back = r.Back, adopted = r.Adopted,
+        tracked = r.Tracked, total = r.Total,
+    });
+});
+
 // ── Библиотека ───────────────────────────────────────────────────────────
 // Отбор по тегам, а не путь по папкам: теги равноправны, иерархии нет.
 
@@ -232,6 +251,7 @@ app.MapGet("/api/thumb/{id:long}", async (long id, int? size) =>
 if (args.Contains(Args.NoWindow))
 {
     watcher.Start();
+    storeWatch.Start();
     Console.WriteLine("Окно отключено. Открой http://127.0.0.1:5577");
     app.Run();
     return;
@@ -250,6 +270,7 @@ Startup.Refresh();
 // наблюдателя и держал запуск, пока считался sha256 всей папки: на сотне
 // файлов это полминуты, а с автозапуском столько же на каждой загрузке Windows.
 watcher.Start();
+storeWatch.Start();
 
 Console.WriteLine(toTray ? "Поднялись в трей." : "Окно открыто.");
 

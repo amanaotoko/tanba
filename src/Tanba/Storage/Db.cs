@@ -87,6 +87,18 @@ public sealed class Db
                 cmd.ExecuteNonQuery();
             }
 
+        // Номер файла на томе: по нему переложенный мимо программы файл
+        // узнаётся снова. У существующих строк он пустой, заполнится первым
+        // же обходом хранилища.
+        if (!HasColumn(c, "files", "file_id"))
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "ALTER TABLE files ADD COLUMN file_id TEXT;"
+                                + "ALTER TABLE files ADD COLUMN moved_to TEXT;"
+                                + "CREATE INDEX IF NOT EXISTS ix_files_fileid ON files(file_id);";
+                cmd.ExecuteNonQuery();
+            }
+
         // Указатель поиска. Раньше таблица была объявлена на четыре колонки
         // и не заполнялась ни разу, а искали перебором строк из C#. Пересоздаём
         // под одно имя и набиваем из files: заполнять её теперь есть кому.

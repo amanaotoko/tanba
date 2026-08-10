@@ -361,12 +361,14 @@ function renderResults() {
   }
 
   box.innerHTML = `<div class="grid">` + res.files.map(f => `
-    <div class="card${f.kind === 'catalog' ? ' card-cat' : ''}" data-id="${f.id}"
-         data-kind="${f.kind || 'file'}" title="${esc(f.name)}" draggable="true">
+    <div class="card${f.kind === 'catalog' ? ' card-cat' : ''}${f.movedTo ? ' card-away' : ''}"
+         data-id="${f.id}" data-kind="${f.kind || 'file'}" draggable="true"
+         title="${f.movedTo ? 'Уехал из хранилища: ' + esc(f.movedTo) : esc(f.name)}">
       <div class="thumb">
         <svg class="ic"><use href="#${f.kind === 'catalog' ? 'i-folder' : ICON(f.ext)}"></use></svg>
         ${f.kind === 'catalog' ? ''
           : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
+        ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}
       </div>
       <div class="name">${esc(f.name)}</div>
       <div class="meta">
