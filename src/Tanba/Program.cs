@@ -221,8 +221,14 @@ app.MapPost("/api/show", () =>
 // ── Превью ───────────────────────────────────────────────────────────────
 // Эскиз рисует сама Windows руками Corel и Adobe, см. Shell/Thumbs.cs.
 
-app.MapGet("/api/thumb/{id:long}", async (long id, int? size) =>
+app.MapGet("/api/thumb/{id:long}", async (HttpContext http, long id, int? size) =>
 {
+    // Без Cache-Control ответ с одним Last-Modified браузер держит у себя
+    // столько, сколько сочтёт нужным, и сервер об этом даже не спрашивает.
+    // Файл при этом мог смениться под тем же именем, а эскиз остался старый.
+    // no-cache не запрещает хранить, а требует спросить: обычно это 304.
+    http.Response.Headers.CacheControl = "no-cache";
+
     FileRow? f;
     long real;
     using (var c = repo.Open())
