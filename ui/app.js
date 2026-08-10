@@ -44,6 +44,14 @@ function render() {
   const s = state.stats || {};
   $('statFiles').textContent = `${s.files || 0} в каталоге`;
   $('statSize').textContent = fmtSize(s.bytes || 0);
+
+  // Числа на вкладках. Отдаём готовыми: всё это уже приехало с /api/state,
+  // и после «Разложить» вкладка обязана поменяться сразу, а не через опрос.
+  window.tanbaCounts?.({
+    inbox: state.pending,
+    files: s.files,
+    tags: state.groups.reduce((n, g) => n + g.tags.length, 0),
+  });
 }
 
 /// Что сейчас нарисовано в сетке, чтобы понимать, надо ли её пересобирать.

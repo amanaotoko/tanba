@@ -13,10 +13,12 @@
     document.documentElement.dataset.tanba = 'light';
   }
 
+  // count: какое из чисел /api/counts показывать справа на вкладке, там же,
+  // где у проводника крестик. У настроек считать нечего, поле пустое.
   var SCREENS = [
-    { href: 'index.html', name: 'Разбор', icon: 't-inbox' },
-    { href: 'library.html', name: 'Библиотека', icon: 't-grid' },
-    { href: 'tags.html', name: 'Теги', icon: 't-tag' },
+    { href: 'index.html', name: 'Разбор', icon: 't-inbox', count: 'inbox' },
+    { href: 'library.html', name: 'Библиотека', icon: 't-grid', count: 'files' },
+    { href: 'tags.html', name: 'Теги', icon: 't-tag', count: 'tags' },
     { href: 'settings.html', name: 'Настройки', icon: 't-cog' }
   ];
 
@@ -28,7 +30,9 @@
   var tabs = SCREENS.map(function (s) {
     return '<a class="tab' + (s.href === here ? ' on' : '') + '" href="' + s.href + '">' +
            '<svg class="ic"><use href="#' + s.icon + '"></use></svg>' +
-           '<span>' + s.name + '</span></a>';
+           '<span class="tname">' + s.name + '</span>' +
+           (s.count ? '<span class="tnum" data-count="' + s.count + '"></span>' : '') +
+           '</a>';
   }).join('');
 
   host.className = 'titlebar';
@@ -97,6 +101,33 @@
     });
     setTile(localStorage.getItem('tanba-tile') || 'm');
   }
+
+  // Числа на вкладках, ровно там, где у проводника крестик закрытия.
+  // Закрывать у нас нечего: разделы всегда одни и те же, а место хорошее.
+  var nums = host.querySelectorAll('.tnum');
+
+  function paintCounts(c) {
+    nums.forEach(function (el) {
+      var n = c[el.dataset.count];
+      if (n == null) { el.textContent = ''; return; }
+      // Выше тысячи точное число никому не нужно, а вкладку оно распирает
+      // и на узком окне выдавливает название.
+      el.textContent = n > 999 ? '999+' : String(n);
+    });
+  }
+
+  // Без довода идём за числами сами. Экран разбора уже держит их в своём
+  // состоянии и передаёт готовыми, чтобы после «Разложить» число падало
+  // сразу, а не через опрос.
+  window.tanbaCounts = function (counts) {
+    if (counts) { paintCounts(counts); return; }
+    fetch('/api/counts')
+      .then(function (r) { return r.json(); })
+      .then(paintCounts)
+      .catch(function () { /* сервер поднимется, следующий заход попадёт */ });
+  };
+  window.tanbaCounts();
+  setInterval(window.tanbaCounts, 30000);
 
   var bridge = window.chrome && window.chrome.webview;
 
