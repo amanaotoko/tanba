@@ -18,6 +18,51 @@
 const scr = () => window.tanbaCmd || {};
 const scrBox = () => scr().box?.();
 const scrSel = () => (scr().selected && scr().selected()) || [];
+const scrOrder = () => scr().order?.() || [];
+
+/// Откуда shift отсчитывает диапазон. Живёт здесь, а не на экране: раньше
+/// каждый экран вёл свой якорь, и вместе с ним свою копию правил выделения,
+/// а разошлись в итоге Escape и Ctrl+A.
+let anchor = null;
+
+// ── Выделение по клику ─────────────────────────────────────────────────
+
+function pickCard(id, e) {
+  const order = scrOrder();
+  const cur = scrSel();
+  let next;
+
+  if (e.shiftKey && anchor !== null && order.includes(anchor) && order.includes(id)) {
+    const a = order.indexOf(anchor), b = order.indexOf(id);
+    const range = order.slice(Math.min(a, b), Math.max(a, b) + 1);
+    // Якорь при этом не двигаем: повторные shift-клики честно перерисовывают
+    // диапазон от исходной точки, а не ползут за курсором.
+    next = e.ctrlKey ? [...new Set([...cur, ...range])] : range;
+  } else if (e.ctrlKey || e.metaKey) {
+    next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+    anchor = id;
+  } else {
+    // Повторный клик по уже выделенному ничего не снимает. Так ведёт себя
+    // проводник, проверено на живом окне: три клика подряд по одному файлу
+    // оставляют его выделенным. И так двойной клик перестаёт гасить выбор
+    // своим вторым щелчком, а раньше гасил: файл открывался и переставал
+    // быть выделенным. Снимает выделение только клик по пустому месту.
+    next = [id];
+    anchor = id;
+  }
+
+  scr().setSel?.(next);
+  scr().settled?.();
+}
+
+if (scrBox()) {
+  scrBox().addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    // Клик по чипу тега добавляет его в отбор, выделение тут ни при чём.
+    if (!card || e.target.closest('[data-add]')) return;
+    pickCard(+card.dataset.id, e);
+  });
+}
 
 // ── Рамка выделения ────────────────────────────────────────────────────
 // Зажал на пустом месте и обвёл. Точки держим в координатах содержимого,
@@ -98,8 +143,10 @@ const scrSel = () => (scr().selected && scr().selected()) || [];
       removeEventListener('mouseup', up);
       band?.remove();
       band = null;
-      // Клик по пустому месту без движения снимает выделение.
-      if (!started && !base.length) scr().setSel?.([]);
+      // Клик по пустому месту без движения снимает выделение. Якорь тоже:
+      // иначе следующий shift-клик отсчитает диапазон от точки, которая
+      // уже не выделена и о которой человек забыл.
+      if (!started && !base.length) { scr().setSel?.([]); anchor = null; }
       // Экран мог считать состояние тегов под выделение: во время протяжки
       // дёргать сервер нельзя, а один раз в конце нужно.
       scr().settled?.();
@@ -185,5 +232,39 @@ if (scrBox()) {
 }
 
 addEventListener('click', closeCtx);
-addEventListener('keydown', e => { if (e.key === 'Escape') closeCtx(); });
 addEventListener('resize', closeCtx);
+
+// ── Клавиши выделения ──────────────────────────────────────────────────
+
+/// Человек печатает: клавиши принадлежат полю, а не сетке.
+const typing = e => e.target.tagName === 'INPUT' || e.target.isContentEditable;
+
+// Фаза перехвата, третьим аргументом. Окно переименования закрывает себя
+// своим же обработчиком Escape, и в обычной фазе оно успело бы исчезнуть
+// раньше, чем мы проверим, открыто ли оно: отмена переименования заодно
+// сбрасывала бы выделение.
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    // Escape снимает то, что сверху. Если открыто меню или окно, выделение
+    // не трогаем.
+    if (ctx) return closeCtx();
+    if (document.querySelector('.modal')) return;
+    if (typing(e)) return;
+    scr().setSel?.([]);
+    anchor = null;
+    scr().settled?.();
+    return;
+  }
+
+  // Проверяем код клавиши, а не букву. По букве не работало в русской
+  // раскладке: оттуда приходит «ф», и сочетание молча ничего не делало.
+  // CapsLock ломал его так же, потому что приходила заглавная «A».
+  if (e.ctrlKey && e.code === 'KeyA' && !typing(e)) {
+    e.preventDefault();
+    // Берём то, что нарисовано на экране, а не весь раздел: под включённым
+    // отбором «выделить всё» должно означать всё видимое, как в проводнике.
+    scr().setSel?.(scrOrder());
+    anchor = null;
+    scr().settled?.();
+  }
+}, true);

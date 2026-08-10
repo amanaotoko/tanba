@@ -4,8 +4,7 @@
 // Живёт отдельно от library.js, но в той же области видимости: обработчики
 // вешаются делегированием на контейнер, поэтому перерисовка сетки их не рвёт.
 
-let sel = new Set();
-let anchor = null;
+let sel = new Set();          // якорь для Shift живёт в picking.js
 
 const ids = () => [...sel];
 const byId = id => res.files.find(f => f.id === id);
@@ -34,6 +33,7 @@ window.tanbaCmd = {
   delCatalog: file => deleteCatalogModal(file),
 
   box: () => $('results'),
+  order: () => res.files.map(f => f.id),
   setSel: list => { sel.clear(); for (const id of list) sel.add(id); applySel(); },
 
   menu: file => file?.kind === 'catalog'
@@ -76,32 +76,7 @@ function updateStatus() {
 const _renderResults = renderResults;
 renderResults = function () { _renderResults(); applySel(); };
 
-function pickCard(id, e) {
-  const order = res.files.map(f => f.id);
-  if (e.shiftKey && anchor !== null) {
-    const a = order.indexOf(anchor), b = order.indexOf(id);
-    if (a >= 0 && b >= 0) {
-      if (!e.ctrlKey) sel.clear();
-      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) sel.add(order[i]);
-    }
-  } else if (e.ctrlKey || e.metaKey) {
-    sel.has(id) ? sel.delete(id) : sel.add(id);
-    anchor = id;
-  } else {
-    const only = sel.size === 1 && sel.has(id);
-    sel.clear();
-    if (!only) sel.add(id);
-    anchor = id;
-  }
-  applySel();
-}
-
-$('results').addEventListener('click', e => {
-  const card = e.target.closest('.card');
-  // Клик по чипу тега добавляет его в отбор, выделение тут ни при чём.
-  if (!card || e.target.closest('[data-add]')) return;
-  pickCard(+card.dataset.id, e);
-});
+// Выделение по клику вешает picking.js, одинаково с разбором.
 
 // ── Модалки ────────────────────────────────────────────────────────────
 

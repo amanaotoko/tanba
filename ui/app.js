@@ -2,8 +2,7 @@
 
 const API = '';
 let state = { inbox: [], groups: [], stats: {} };
-let sel = new Set();          // выделенные файлы
-let anchor = null;            // якорь для выделения с Shift
+let sel = new Set();          // выделенные файлы, якорь для Shift в picking.js
 
 // Отбор приёма. Имена не pick и не toggleTag: на этом экране так уже
 // называются выбор файлов и навешивание тега, и путать их нельзя.
@@ -71,6 +70,10 @@ window.tanbaCmd = {
   },
 
   box: () => $('files'),
+  // Порядок берём из того, что нарисовано, а не из всего приёма. Иначе
+  // shift-клик при включённом отборе тянет за собой файлы, которых на
+  // экране нет, и они уезжают в «Разложить» вместе с видимыми.
+  order: () => visible().map(f => f.id),
   setSel: list => { sel.clear(); for (const id of list) sel.add(id); paintSel(); },
   // Флажки тегов слева считает сервер под выделение, поэтому после того,
   // как оно устоялось, экран надо перечитать.
@@ -161,10 +164,11 @@ function renderFiles() {
       <div class="name">${esc(f.name)}</div>
     </div>`).join('') + `</div>`;
 
+  // Выделение по клику вешает picking.js, одним слушателем на всю сетку
+  // и одинаково с библиотекой. Здесь остаётся двойной клик: им открывается
+  // сам файл, потому что перед тем как вешать теги обычно надо посмотреть,
+  // что это вообще такое, а по эскизу видно не всё.
   box.querySelectorAll('.card').forEach(el => {
-    el.onclick = e => pick(+el.dataset.id, e);
-    // Двойным открывается сам файл: перед тем как вешать теги, обычно надо
-    // посмотреть, что это вообще такое, а по эскизу видно не всё.
     el.ondblclick = async () => {
       try { await api('/api/files/open', { id: +el.dataset.id }); }
       catch (e) { toast('Не открылось: ' + e.message, 'err'); }
@@ -240,28 +244,6 @@ function renderBar() {
   $('fileBtn').disabled = !ready;
   $('laterBtn').disabled = !bare;
   $('hint').textContent = bare ? `${bare} ${plural(bare, 'файл', 'файла', 'файлов')} без тегов` : '';
-}
-
-// ── Выделение ──────────────────────────────────────────────────────────
-
-function pick(id, e) {
-  const ids = state.inbox.map(f => f.id);
-  if (e.shiftKey && anchor !== null) {
-    const a = ids.indexOf(anchor), b = ids.indexOf(id);
-    if (a >= 0 && b >= 0) {
-      if (!e.ctrlKey) sel.clear();
-      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) sel.add(ids[i]);
-    }
-  } else if (e.ctrlKey || e.metaKey) {
-    sel.has(id) ? sel.delete(id) : sel.add(id);
-    anchor = id;
-  } else {
-    const only = sel.size === 1 && sel.has(id);
-    sel.clear();
-    if (!only) sel.add(id);
-    anchor = id;
-  }
-  load();
 }
 
 // ── Действия ───────────────────────────────────────────────────────────
@@ -416,10 +398,10 @@ document.addEventListener('mousedown', e => {
   if (!$('pop').hidden && !$('pop').contains(e.target) && !e.target.closest('#add')) closePop();
 });
 
+// Escape и Ctrl+A переехали в picking.js: они про выделение, а выделение
+// теперь одно на оба экрана. Здесь остаётся только своё.
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
-  if (e.ctrlKey && e.key === 'a') { e.preventDefault(); state.inbox.forEach(f => sel.add(f.id)); load(); }
-  if (e.key === 'Escape') { sel.clear(); load(); }
   if (e.key === 'Enter' && !$('fileBtn').disabled) $('fileBtn').click();
 });
 
