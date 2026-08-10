@@ -87,6 +87,23 @@ public sealed class Db
                 cmd.ExecuteNonQuery();
             }
 
+        // Указатель поиска. Раньше таблица была объявлена на четыре колонки
+        // и не заполнялась ни разу, а искали перебором строк из C#. Пересоздаём
+        // под одно имя и набиваем из files: заполнять её теперь есть кому.
+        if (!HasColumn(c, "files_fts", "name"))
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = """
+                    DROP TABLE IF EXISTS files_fts;
+                    CREATE VIRTUAL TABLE files_fts USING fts5(
+                      name,
+                      tokenize = "unicode61 remove_diacritics 2"
+                    );
+                    INSERT INTO files_fts (rowid, name) SELECT id, orig_name FROM files;
+                    """;
+                cmd.ExecuteNonQuery();
+            }
+
         using (var cmd = c.CreateCommand())
         {
             cmd.CommandText = """

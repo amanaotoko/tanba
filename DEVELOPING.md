@@ -71,6 +71,24 @@ so it heals itself. Enabled state is read back from the registry including the
 undocumented `StartupApproved` mark, so turning Tanba off in Windows settings
 shows up in ours.
 
+**Search goes through FTS5 and only covers the name.** `files_fts` holds one
+column, filled by `Repo.Index`, which is called on every insert and every
+rename. The tokenizer splits on anything that is not a letter or a digit, so
+`000147__промо.mp4` is indexed as three words and word order stops mattering:
+"унив реклама" finds "Реклама универа". The query builder splits the typed text
+the same way and quotes each word, because an unquoted bracket or minus reads
+as query syntax and SQLite would hand the user a parser error.
+
+The trade is that matching starts at word boundaries: "тана" no longer finds
+"katana". Before this the search was a C# callback invoked from SQL on every
+row, which could match mid-word but could not use an index and could not match
+across word order. If mid-word ever matters more than speed, the fallback is to
+keep FTS as the primary and drop to the old scan only when it returns nothing.
+
+Tags are deliberately not in the index. They are picked with checkboxes rather
+than typed, and keeping them there would mean reindexing every file that
+carries a tag whenever that tag is renamed or merged.
+
 **The first inbox scan runs in the background.** It used to sit in the watcher's
 constructor and hold startup until every file had been hashed, which is half a
 minute on a hundred files and would be half a minute of every boot once

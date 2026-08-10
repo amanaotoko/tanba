@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using Tanba.Storage;
 
@@ -16,7 +17,8 @@ public static class Library
 
     /// Условие, общее для списка, счётчика и фасетов.
     private const string FiledBase =
-        "f.is_missing = 0 AND f.rel_path NOT LIKE $inbox AND ($q IS NULL OR tanba_has(f.orig_name, $q))";
+        "f.is_missing = 0 AND f.rel_path NOT LIKE $inbox AND " +
+        "($q IS NULL OR f.id IN (SELECT rowid FROM files_fts WHERE files_fts MATCH $q))";
 
     /// <summary>
     /// Дата отбирается диапазоном, а не тегом: она непрерывна и уже лежит в files.
@@ -101,7 +103,6 @@ public static class Library
             var ep = ExtParams(exts);
 
             using var c = repo.Open();
-            AddSearch(c);
             var sel = SelectionCte(tagIds, and, dates, exts.Length);
 
             long total, bytes;
@@ -174,7 +175,6 @@ public static class Library
             var ep = ExtParams(exts);
 
             using var c = repo.Open();
-            AddSearch(c);
             var sel = SelectionCte(tagIds, and, dates, exts.Length);
 
             long total;
@@ -407,7 +407,7 @@ public static class Library
         long? from = null, long? to = null, long? cat = null,
         (bool Files, bool Cats) show = default, params (string, object?)[] more)
     {
-        var needle = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+        var needle = Fts(q);
         var (sf, sc) = show == default ? (true, true) : show;
         return c.Sql(sql, [
             ("$inbox", (object?)InboxPrefix), ("$q", needle),
@@ -416,13 +416,29 @@ public static class Library
     }
 
     /// <summary>
-    /// Подстрока в имени без учёта регистра. Встроенные lower() и LIKE в SQLite
-    /// знают только латиницу, а имена у нас русские и казахские.
+    /// Превращает набранное человеком в запрос FTS5.
+    ///
+    /// Режем ввод там же, где режет токенизатор, по всему, что не буква и
+    /// не цифра: тогда «img9.jpg» ищется двумя словами и находится, а не
+    /// превращается в несуществующее «img9jpg». Каждое слово берём в кавычки,
+    /// иначе минус или скобка во вводе прочитаются как синтаксис запроса
+    /// и SQLite ответит ошибкой прямо человеку в лицо.
+    ///
+    /// Звёздочка разрешает продолжение слова: «рекл» находит «Реклама».
+    /// Слова соединяются через И, но порядок их не важен, поэтому
+    /// «унив реклама» находит «Реклама универа».
     /// </summary>
-    private static void AddSearch(SqliteConnection c) =>
-        c.CreateFunction("tanba_has", (string? hay, string? needle) =>
-            hay is not null && needle is not null &&
-            hay.Contains(needle, StringComparison.InvariantCultureIgnoreCase), isDeterministic: true);
+    private static string? Fts(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        var words = Regex.Split(text, @"[^\p{L}\p{N}]+")
+            .Where(w => w.Length > 0)
+            .Select(w => '"' + w + "\"*");
+
+        var q = string.Join(' ', words);
+        return q.Length == 0 ? null : q;
+    }
 
     // ── Данные для панели ────────────────────────────────────────────────
 

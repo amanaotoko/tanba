@@ -75,6 +75,7 @@ public static class Files
                 "UPDATE files SET orig_name = $n, rel_path = $p WHERE id = $i",
                 ("$n", newName), ("$p", newRel), ("$i", cmd.Id));
             upd.ExecuteNonQuery();
+            Repo.Index(c, cmd.Id, newName);
 
             repo.LogEvent(c, "rename", cmd.Id, null, newName);
             return Results.Ok(new { id = cmd.Id, name = newName, onDisk = newRel != f.RelPath });

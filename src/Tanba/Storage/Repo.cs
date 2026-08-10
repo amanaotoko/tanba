@@ -38,7 +38,29 @@ public sealed class Repo(Db db)
             """,
             ("$p", relPath), ("$o", origName), ("$e", ext), ("$s", size),
             ("$h", sha256), ("$ct", ctime), ("$m", mtime), ("$n", Now));
-        return ins.ScalarLong();
+
+        var made = ins.ScalarLong();
+        Index(c, made, origName);
+        return made;
+    }
+
+    /// <summary>
+    /// Кладёт имя в указатель поиска. Звать после любого создания записи
+    /// и после любого переименования: указатель, разошедшийся с данными,
+    /// хуже отсутствующего, потому что врёт молча.
+    ///
+    /// Сначала удаляем, потом вставляем: в FTS5 нет обновления на месте,
+    /// а вставка поверх завела бы вторую строку с тем же rowid.
+    /// </summary>
+    public static void Index(SqliteConnection c, long id, string? name)
+    {
+        using var del = c.Sql("DELETE FROM files_fts WHERE rowid = $i", ("$i", id));
+        del.ExecuteNonQuery();
+
+        if (string.IsNullOrEmpty(name)) return;
+        using var ins = c.Sql("INSERT INTO files_fts (rowid, name) VALUES ($i, $n)",
+            ("$i", id), ("$n", name));
+        ins.ExecuteNonQuery();
     }
 
     /// <summary>Файлы, лежащие в папке приёма и ещё не разложенные.</summary>
@@ -83,10 +105,12 @@ public sealed class Repo(Db db)
     {
         using var cmd = c.Sql("UPDATE files SET orig_name=$n WHERE id=$i", ("$n", name), ("$i", id));
         cmd.ExecuteNonQuery();
+        Index(c, id, name);
     }
 
     public void Delete(SqliteConnection c, long id)
     {
+        Index(c, id, null);
         using var cmd = c.Sql("DELETE FROM files WHERE id=$i", ("$i", id));
         cmd.ExecuteNonQuery();
     }

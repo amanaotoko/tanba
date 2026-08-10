@@ -87,6 +87,7 @@ public static class Catalogs
 
             using var upd = c.Sql("UPDATE files SET orig_name = $n WHERE id = $i", ("$n", name), ("$i", id));
             upd.ExecuteNonQuery();
+            Repo.Index(c, id, name);
             return Results.Ok(new { id, name });
         });
 
@@ -152,7 +153,11 @@ public static class Catalogs
             VALUES ('catalog', 'catalog\' || lower(hex(randomblob(8))), $n, 0, $t, $t);
             SELECT last_insert_rowid();
             """, ("$n", name), ("$t", Repo.Now));
-        return ins.ScalarLong();
+
+        // Каталог ищется наравне с файлами, значит и в указателе он наравне.
+        var id = ins.ScalarLong();
+        Repo.Index(c, id, name);
+        return id;
     }
 
     /// <summary>Кладёт объекты в каталог. Возвращает текст ошибки либо null.</summary>
