@@ -35,6 +35,11 @@ jobs:
           "VER=$($env:GITHUB_REF_NAME -replace '^v','')" |
             Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      # Перед сборкой релиза, а не после: сломанная версия не должна уезжать
+      # на машины, откуда её снимать придётся руками и ногами.
+      - name: Test
+        run: dotnet test src/Tanba.Tests --nologo
+
       - name: Install vpk
         run: dotnet tool install -g vpk --version 1.2.0
 

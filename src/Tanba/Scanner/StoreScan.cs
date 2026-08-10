@@ -76,13 +76,14 @@ public sealed class StoreWatcher : IDisposable
 /// а не в тот день, когда что-то потерялось.
 /// </summary>
 public sealed record StoreReport(
-    int Followed, int MovedOut, int Lost, int Back, int Adopted, int Tracked, int Total)
+    int Followed, int MovedOut, int Lost, int Back, int Adopted, int Refused, int Tracked, int Total)
 {
-    public bool Anything => Followed + MovedOut + Lost + Back + Adopted > 0;
+    public bool Anything => Followed + MovedOut + Lost + Back + Adopted + Refused > 0;
 
     public override string ToString() =>
         $"переехало внутри {Followed}, уехало наружу {MovedOut}, " +
-        $"пропало {Lost}, вернулось {Back}, подобрано чужих {Adopted}";
+        $"пропало {Lost}, вернулось {Back}, подобрано чужих {Adopted}" +
+        (Refused > 0 ? $", НЕ ТРОНУТО из осторожности {Refused}" : "");
 }
 
 /// <summary>
@@ -126,7 +127,7 @@ public sealed class StoreScan(Config cfg, Repo repo)
 
         // Ничего не пропало и чужого нет: расходимся, диск больше не трогаем.
         if (misses.Count == 0 && strangers.Count == 0)
-            return Ready(c, 0, 0, 0, back, 0);
+            return Ready(c, 0, 0, 0, back, 0, 0);
 
         // Номера считаем только у тех, кто под подозрением: у непознанных
         // файлов в хранилище и, если этого мало, у всего остального на диске.
@@ -172,12 +173,27 @@ public sealed class StoreScan(Config cfg, Repo repo)
             }
         }
 
-        var adopted = Adopt(strangers.Where(p => !claimed.Contains(p)));
-        return Ready(c, followed, movedOut, lost, back, adopted);
+        var loose = strangers.Where(p => !claimed.Contains(p)).ToList();
+
+        // Хранилище полное, а база пустая или почти пустая. Это не «все файлы
+        // чужие», это потерянная или разрушенная база: файл базы удалили,
+        // испортили, или хранилище перенесли на другую машину без него.
+        // Разложить весь архив по приёму в этом случае значит срезать номера,
+        // сплющить раскладку по годам и оставить копию базы, которая указывает
+        // в пустоту. Собрать обратно будет нечем, поэтому не трогаем и говорим.
+        if (loose.Count > 0 && loose.Count > rows.Count)
+        {
+            Console.Error.WriteLine(
+                $"Хранилище: {loose.Count} файлов не числятся в базе, а в базе всего {rows.Count}. " +
+                "Похоже на потерянную базу, ничего не трогаю.");
+            return Ready(c, followed, movedOut, lost, back, 0, loose.Count);
+        }
+
+        return Ready(c, followed, movedOut, lost, back, Adopt(loose), 0);
     }
 
     /// <summary>Дописывает в отчёт, сколько файлов уже помнят свой номер.</summary>
-    private static StoreReport Ready(SqliteConnection c, int f, int m, int l, int b, int a)
+    private static StoreReport Ready(SqliteConnection c, int f, int m, int l, int b, int a, int refused)
     {
         using var cmd = c.Sql("""
             SELECT count(*), count(file_id) FROM files
@@ -185,8 +201,8 @@ public sealed class StoreScan(Config cfg, Repo repo)
             """, ("$pfx", Config.InboxName + @"\%"));
         using var r = cmd.ExecuteReader();
         return r.Read()
-            ? new StoreReport(f, m, l, b, a, (int)r.GetInt64(1), (int)r.GetInt64(0))
-            : new StoreReport(f, m, l, b, a, 0, 0);
+            ? new StoreReport(f, m, l, b, a, refused, (int)r.GetInt64(1), (int)r.GetInt64(0))
+            : new StoreReport(f, m, l, b, a, refused, 0, 0);
     }
 
     // ── Что лежит на диске ───────────────────────────────────────────────
@@ -211,9 +227,26 @@ public sealed class StoreScan(Config cfg, Repo repo)
             .Where(p => !known.Contains(cfg.ToRelative(p)))];
     }
 
-    private static IEnumerable<string> Walk(string dir)
+    /// <summary>
+    /// Обход папки. Список собирается ЗДЕСЬ, внутри try, и это не стилистика:
+    /// EnumerateFiles ленив, и раньше исключение случалось позже, при переборе,
+    /// уже за пределами catch. На диске с «System Volume Information» обход
+    /// падал целиком, и вся слежка за файлами молча выключалась.
+    ///
+    /// IgnoreInaccessible лечит причину: чужие защищённые папки пропускаются,
+    /// а не роняют проход. Точки повторного разбора минуем, чтобы не ходить
+    /// по кругу через ссылку на родительскую папку.
+    /// </summary>
+    private static List<string> Walk(string dir)
     {
-        try { return Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories); }
+        var how = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+        };
+
+        try { return [.. Directory.EnumerateFiles(dir, "*", how)]; }
         catch (IOException) { return []; }
         catch (UnauthorizedAccessException) { return []; }
     }

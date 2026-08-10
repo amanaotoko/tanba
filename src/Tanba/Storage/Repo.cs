@@ -108,6 +108,24 @@ public sealed class Repo(Db db)
         Index(c, id, name);
     }
 
+    /// <summary>
+    /// Запоминает номер файла на томе. По нему файл узнаётся после того,
+    /// как его переложили мимо программы, см. Shell.Native.FileId.
+    /// </summary>
+    public void SetFileId(SqliteConnection c, long id, string? fileId)
+    {
+        if (fileId is null) return;
+        using var cmd = c.Sql("UPDATE files SET file_id = $f WHERE id = $i", ("$f", fileId), ("$i", id));
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>Помечает файл пропавшим: на диске его нет, а строка с тегами нужна.</summary>
+    public void MarkMissing(SqliteConnection c, long id)
+    {
+        using var cmd = c.Sql("UPDATE files SET is_missing = 1 WHERE id = $i", ("$i", id));
+        cmd.ExecuteNonQuery();
+    }
+
     public void Delete(SqliteConnection c, long id)
     {
         Index(c, id, null);
@@ -116,12 +134,23 @@ public sealed class Repo(Db db)
     }
 
     /// <summary>Файлы, пропавшие из приёма между сканированиями, убираем из базы.</summary>
-    public int ForgetMissingInbox(SqliteConnection c, IEnumerable<string> seenRelPaths)
+    /// <summary>
+    /// Убирает из приёма строки файлов, которых больше нет. Возвращает
+    /// удалённые id, чтобы звавший выбросил их эскизы: id в таблице
+    /// переиспользуются, и чужой эскиз потом показался бы новому файлу.
+    ///
+    /// Проверка onDisk обязательна и не для красоты: отсутствие в списке
+    /// увиденных значит лишь то, что сканер до файла не добрался.
+    /// </summary>
+    public List<long> ForgetMissingInbox(SqliteConnection c, IEnumerable<string> seenRelPaths,
+        Func<string, bool> onDisk)
     {
         var seen = new HashSet<string>(seenRelPaths, StringComparer.OrdinalIgnoreCase);
-        var doomed = ListInbox(c).Where(f => !seen.Contains(f.RelPath)).Select(f => f.Id).ToList();
+        var doomed = ListInbox(c)
+            .Where(f => !seen.Contains(f.RelPath) && !onDisk(f.RelPath))
+            .Select(f => f.Id).ToList();
         foreach (var id in doomed) Delete(c, id);
-        return doomed.Count;
+        return doomed;
     }
 
     private static List<FileRow> ReadFiles(SqliteCommand cmd)

@@ -34,16 +34,20 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
                 continue;
             }
 
+            // Дальше идут три причины пройти мимо файла, и во всех трёх он
+            // остаётся в списке увиденных. «Не смог прочитать» и «его нет»
+            // это разные вещи: раньше они шли одним путём, и файл, открытый
+            // в другой программе, терял строку вместе со всеми тегами.
             FileInfo fi;
             try { fi = new FileInfo(full); if (!fi.Exists) continue; }
-            catch (IOException) { continue; }
+            catch (IOException) { seen.Add(rel); continue; }
 
-            // Файл ещё копируется, пропускаем и поймаем на следующем проходе.
-            if (IsLocked(full)) continue;
+            // Файл ещё копируется, поймаем на следующем проходе.
+            if (IsLocked(full)) { seen.Add(rel); continue; }
 
             string sha;
             try { sha = Sha256(full); }
-            catch (IOException) { continue; }
+            catch (IOException) { seen.Add(rel); continue; }
 
             // NTFS переживает перенос внутри тома, поэтому дата создания
             // после «Разложить» остаётся настоящей, а не датой попадания в хранилище.
@@ -54,7 +58,11 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
             seen.Add(rel);
         }
 
-        repo.ForgetMissingInbox(c, seen);
+        // Вторая защита, на случай если появится ещё один путь «пройти мимо»:
+        // строку сносим только когда файла действительно нет на диске.
+        foreach (var id in repo.ForgetMissingInbox(c, seen, rel => System.IO.File.Exists(cfg.ToFull(rel))))
+            thumbs?.Forget(id);
+
         return seen.Count;
     }
 
@@ -84,6 +92,17 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
                 if (f.Sha256 is not null)
                 {
                     var twin = repo.FindFiledByHash(c, f.Sha256, id);
+
+                    // Выжившего проверяем на диске, а не по колонке is_missing:
+                    // она хранит мнение базы, а мнение устаревает. Файл могли
+                    // удалить в проводнике, и тогда «дубликат» это последняя
+                    // копия, а слияние стёрло бы её насовсем.
+                    if (twin > 0 && !System.IO.File.Exists(cfg.ToFull(repo.Get(c, twin)?.RelPath ?? "")))
+                    {
+                        repo.MarkMissing(c, twin);
+                        twin = 0;
+                    }
+
                     if (twin > 0)
                     {
                         var keeper = repo.Get(c, twin);
@@ -96,7 +115,11 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
                         repo.Delete(c, id);
                         repo.LogEvent(c, "dup_merged", twin, null, f.OrigName);
                         tx.Commit();
-                        System.IO.File.Delete(src);
+
+                        // В корзину, а не насовсем. Это единственное место
+                        // в программе, которое расстаётся с байтами, и у него
+                        // нет причин быть строже кнопки «Удалить».
+                        Tanba.Web.Recycle.Send(src);
                         thumbs?.Forget(id);   // id исчез, эскиз в кэше не нужен
                         merged++;
                         continue;
@@ -111,6 +134,12 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
                 System.IO.File.Move(src, dst);
 
                 repo.SetRelPath(c, id, cfg.ToRelative(dst));
+
+                // Номер записываем сразу, а не ждём ближайшего обхода: между
+                // раскладыванием и обходом файл нечем было бы опознать, а
+                // переложить его могут ровно в эту минуту.
+                repo.SetFileId(c, id, Shell.Native.FileId(dst));
+
                 repo.LogEvent(c, "filed", id, null, f.OrigName);
                 moved++;
             }

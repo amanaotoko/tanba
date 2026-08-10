@@ -244,7 +244,12 @@ $('fileBtn').onclick = async () => {
   sel.clear();
   const parts = [`Разложено: ${r.moved}`];
   if (r.merged) parts.push(`дубликатов слито: ${r.merged}`);
-  toast(parts.join(', '), r.errors && r.errors.length ? 'err' : '');
+
+  // Ошибку надо назвать, а не покрасить. Раньше список r.errors только менял
+  // цвет тоста, и человек видел красное «Разложено: 39», не зная, что с сороковым.
+  const bad = r.errors || [];
+  toast(bad.length ? bad[0] + (bad.length > 1 ? ` и ещё ${bad.length - 1}` : '') : parts.join(', '),
+        bad.length ? 'err' : '');
   await load();
 };
 

@@ -97,6 +97,18 @@ public static class Files
                 var f = repo.Get(c, id);
                 if (f is null) continue;
 
+                // Каталог сюда попадает вместе со смешанным выделением: правое
+                // меню выбирается по тому, на чём щёлкнули, а список уходит весь.
+                // На диске у каталога ничего нет, поэтому в корзину не уйдёт
+                // ничего, а пометка пропавшим убрала бы его навсегда: возврат
+                // умеет работать только с файлами.
+                using (var kind = c.Sql("SELECT kind FROM files WHERE id = $i", ("$i", id)))
+                    if (Convert.ToString(kind.ExecuteScalar()) != "file")
+                    {
+                        errors.Add($"{f.OrigName}: это каталог, удаляется отдельно");
+                        continue;
+                    }
+
                 var full = cfg.ToFull(f.RelPath);
                 try
                 {

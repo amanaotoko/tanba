@@ -196,7 +196,7 @@ app.MapPost("/api/storescan", () =>
     return Results.Ok(new
     {
         followed = r.Followed, movedOut = r.MovedOut,
-        lost = r.Lost, back = r.Back, adopted = r.Adopted,
+        lost = r.Lost, back = r.Back, adopted = r.Adopted, refused = r.Refused,
         tracked = r.Tracked, total = r.Total,
     });
 });
