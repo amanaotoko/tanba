@@ -138,7 +138,6 @@ function renderFiles() {
         <img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">
       </div>
       <div class="name">${esc(f.name)}</div>
-      <div class="meta"><span class="dim mono">${fmtSize(f.size)}</span></div>
     </div>`).join('') + `</div>`;
 
   box.querySelectorAll('.card').forEach(el => {

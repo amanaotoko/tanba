@@ -366,10 +366,9 @@ function renderResults() {
         ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}
       </div>
       <div class="name">${esc(f.name)}</div>
-      <div class="meta">
-        <span class="dim mono">${fmtSize(f.size)}</span>
-        <span class="dim mono">${f.kind === 'catalog' ? (f.count || 0) + ' внутри' : fmtDate(f.addedAt)}</span>
-      </div>
+      ${f.kind === 'catalog'
+        ? `<div class="meta"><span class="dim mono">${f.count || 0} внутри</span></div>`
+        : ''}
     </div>`).join('') + `</div>`
     + (res.files.length < res.total
       ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`
@@ -615,12 +614,6 @@ function fmtSize(b) {
   let i = 0;
   while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
   return (i === 0 ? b : b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
-}
-
-function fmtDate(sec) {
-  if (!sec) return '';
-  return new Date(sec * 1000).toLocaleDateString('ru-RU',
-    { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 function plural(n, one, few, many) {
