@@ -32,9 +32,10 @@
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><rect width="18" height="16" x="3" y="4" rx="2"/><path d="M15 4v16"/><path d="M18 9h-1M18 12h-1M18 15h-1"/></symbol>
 </defs></svg>
 
-<div class="app lib">
+<div class="app lib cmds">
 
   <div id="chrome"></div>
 
@@ -56,21 +57,45 @@
          Раньше называлась «теги», но тегов тут давно не только. -->
     <div class="pick-scope" id="scope"></div>
 
-    <div class="seg" id="tile">
-      <button data-tile="s" title="Мелкие плитки"><svg class="ic"><use href="#v-s"></use></svg></button>
-      <button data-tile="m" title="Средние плитки"><svg class="ic"><use href="#v-m"></use></svg></button>
-      <button data-tile="l" title="Крупные плитки"><svg class="ic"><use href="#v-l"></use></svg></button>
-    </div>
-
     <label class="find">
       <svg class="ic"><use href="#i-search"></use></svg>
       <input id="q" placeholder="имя файла" spellcheck="false">
     </label>
   </div>
 
-  <div class="main">
+  <!-- Командная панель, порядок снят с проводника: слева действия над
+       выделенным, затем вид, справа у самого края панель сведений.
+       Разметка повторяется в index.html, как повторяется и панель отбора
+       над ней: у экранов общие стили, но свои страницы. -->
+  <div class="cmd">
+    <button class="cbtn" data-act="open" title="Открыть">
+      <svg class="ic"><use href="#i-play"></use></svg></button>
+    <button class="cbtn" data-act="rename" title="Переименовать">
+      <svg class="ic"><use href="#i-pencil"></use></svg></button>
+    <button class="cbtn" data-act="tags" title="Настроить теги">
+      <svg class="ic"><use href="#i-tag"></use></svg></button>
+    <button class="cbtn cbtn-danger" data-act="del" title="Удалить">
+      <svg class="ic"><use href="#i-trash"></use></svg></button>
+
+    <div class="cline"></div>
+
+    <div class="seg" id="tile">
+      <button data-tile="s" title="Мелкие плитки"><svg class="ic"><use href="#v-s"></use></svg></button>
+      <button data-tile="m" title="Средние плитки"><svg class="ic"><use href="#v-m"></use></svg></button>
+      <button data-tile="l" title="Крупные плитки"><svg class="ic"><use href="#v-l"></use></svg></button>
+    </div>
+
+    <span class="grow"></span>
+
+    <button class="cbtn cbtn-wide" id="infoBtn" title="Панель сведений">
+      <svg class="ic"><use href="#i-info"></use></svg><span>Сведения</span>
+    </button>
+  </div>
+
+  <div class="main" id="main">
     <aside class="side" id="panel"></aside>
     <section class="files" id="results"></section>
+    <aside class="info" id="info"></aside>
   </div>
 
   <footer class="status">
@@ -96,6 +121,8 @@
 <script src="ftype.js"></script>
 <script src="library.js"></script>
 <script src="actions.js"></script>
+<script src="modal.js"></script>
+<script src="cmdbar.js"></script>
 <script src="dragout.js"></script>
 </body>
 </html>

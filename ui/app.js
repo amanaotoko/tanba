@@ -44,7 +44,22 @@ function render() {
   const s = state.stats || {};
   $('statFiles').textContent = `${s.files || 0} в каталоге`;
   $('statSize').textContent = fmtSize(s.bytes || 0);
+
+  window.tanbaCmdSync?.();
 }
+
+// Что командная панель должна знать про этот экран, см. cmdbar.js.
+// Каталогов в приёме не бывает, поэтому ни входа внутрь, ни своего
+// удаления отсюда не отдаём: панель обойдётся без них.
+window.tanbaCmd = {
+  selected: () => [...sel],
+  byId: id => state.inbox.find(f => f.id === id),
+  reload: () => load(),
+  tagName: id => {
+    for (const g of state.groups) for (const t of g.tags) if (t.id === id) return t.name;
+    return '';
+  },
+};
 
 /// Что сейчас нарисовано в сетке, чтобы понимать, надо ли её пересобирать.
 let shownIds = [];

@@ -3,8 +3,10 @@
 
 [hidden]{display:none !important}
 
-/* Шапка, строка отбора, две колонки, строка состояния */
-.app.lib{grid-template-rows:40px auto 1fr 28px}
+/* Шапка, строка отбора, командная панель, две колонки, строка состояния.
+   Нижняя строка здесь тоньше, чем на разборе: там внизу кнопки, а тут
+   только цифры. Поэтому свой набор рядов, а не общий из tanba.css. */
+.app.lib.cmds{grid-template-rows:40px auto auto 1fr 28px}
 
 a.btn{text-decoration:none}
 
@@ -26,24 +28,32 @@ a.btn{text-decoration:none}
    Подменяем здесь сами токены поверхностей, и органы управления внутри
    перекрашиваются сами, без правки каждого по отдельности. */
 /* Высота снята с проводника: полоса 48, органы управления 32, по 8 сверху
-   и снизу. Держим те же цифры, чтобы окно не выбивалось из системы. */
-.pick{display:flex;align-items:center;gap:8px;padding:8px 16px;min-width:0;
+   и снизу. Держим те же цифры, чтобы окно не выбивалось из системы.
+   Командная панель под отбором живёт по этим же правилам и потому стоит
+   в тех же селекторах: две полосы одна под другой обязаны совпадать
+   по высоте и по органам управления, иначе шапка читается как склеенная
+   из двух разных программ. */
+.pick,
+.cmd{display:flex;align-items:center;gap:8px;padding:8px 16px;min-width:0;
   min-height:48px;background:var(--bar);--s3:var(--ctl);--s4:var(--ctlH)}
-.pick > :not(.pick-scope){flex:none}
+.pick > :not(.pick-scope),
+.cmd > *{flex:none}
 
 /* Всё в панели одной высоты и с одним скруглением, эталон - поле поиска.
    До этого тут стоял разнобой: поиск 34 пикселя с мягким углом, кнопки 24
    и 26 пилюлями. Ряд читался как случайно составленный, а не как панель.
-   Правки нарочно привязаны к .pick: те же пилюли и сегменты на других
-   экранах должны остаться прежними. */
+   Правки нарочно привязаны к .pick и .cmd: те же пилюли и сегменты на
+   других экранах должны остаться прежними. */
 .pick > .pick-scope,
 .pick > .find,
-.pick > .seg,
+.pick > .seg, .cmd > .seg,
 .pick > .mini,
-.pick > .pill{height:32px;border-radius:8px}
+.pick > .pill,
+.cmd > .cbtn{height:32px;border-radius:8px}
 
 .pick > .mini-icon,
-.pick > .pill-add{width:32px;justify-content:center}
+.pick > .pill-add,
+.cmd > .cbtn{width:32px;justify-content:center}
 
 /* Сброс тут не призрачный, как в других местах: в ровном ряду залитых
    кнопок единственная прозрачная читается дыркой, а не скромностью. */
@@ -51,13 +61,36 @@ a.btn{text-decoration:none}
 .pick > .mini-ghost:hover{background:var(--s4);color:var(--t1)}
 .pick > .mini-ghost:disabled:hover{background:var(--s3);color:var(--t2)}
 .pick > .mini-icon .ic,
-.pick > .pill-add .ic{font-size:16px}
+.pick > .pill-add .ic,
+.cmd > .cbtn .ic{font-size:16px}
 
-.pick > .seg{padding:3px}
-.pick > .seg button{height:26px;border-radius:6px;padding:0 13px}
+.pick > .seg, .cmd > .seg{padding:3px}
+.pick > .seg button, .cmd > .seg button{height:26px;border-radius:6px;padding:0 13px}
 /* Деления со значком вместо подписи: размер плиток называть словами негде */
-.pick > .seg button:has(.ic){padding:0 8px}
-.pick > .seg button .ic{font-size:14px;display:block}
+.pick > .seg button:has(.ic), .cmd > .seg button:has(.ic){padding:0 8px}
+.pick > .seg button .ic, .cmd > .seg button .ic{font-size:14px;display:block}
+
+/* ── Командная панель ───────────────────────────────────────────────── */
+/* Порядок снят с проводника: слева действия над выделенным, затем вид,
+   справа у самого края сведения. Размеры и заливка приходят из общих
+   правил выше, здесь только своё. */
+
+.cbtn{display:inline-flex;align-items:center;gap:6px;
+  background:var(--s3);color:var(--t2);font-size:12px;line-height:1}
+.cbtn:hover{background:var(--s4);color:var(--t1)}
+.cbtn-danger:hover{color:var(--err)}
+/* Погашенная кнопка остаётся на месте. Прятать нельзя: панель будет
+   дёргаться на каждом клике по пустому месту, а рука уже помнит, где что. */
+.cbtn:disabled{opacity:.4;cursor:default}
+.cbtn:disabled:hover{background:var(--s3);color:var(--t2)}
+/* С подписью только сведения: они одни и стоят особняком у правого края. */
+.cmd > .cbtn-wide{width:auto;padding:0 12px}
+.cbtn-wide.on{background:var(--t1);color:var(--bg)}
+.cbtn-wide.on:hover{background:var(--t1);color:var(--bg)}
+
+/* Черта между действиями и видом: слева то, что меняет файлы, справа то,
+   что меняет только показ. */
+.cline{width:1px;height:20px;margin:0 2px;background:var(--s4)}
 
 /* Поле отбора того же цвета, что И/ИЛИ: вся левая часть читается как одно
    место «вот что я ищу», а не как чипы, рассыпанные по пустому фону. */

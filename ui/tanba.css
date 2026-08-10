@@ -56,6 +56,10 @@ input{font:inherit;color:inherit}
    Панель есть на всех экранах: без неё активной вкладке не с чем срастаться
    и она висит в воздухе. Содержимое у панели своё на каждом экране. */
 .app{display:grid;grid-template-rows:40px auto 1fr 56px;height:100vh}
+/* Экраны с командной панелью получают под отбором ещё один ряд. Класс, а не
+   общее правило: у тегов и настроек этой панели нет, и лишний ряд сдвинул бы
+   им нижнюю строку в середину окна. */
+.app.cmds{grid-template-rows:40px auto auto 1fr 56px}
 
 .muted{color:var(--t2);font-size:13px;line-height:18px}
 .dim{color:var(--t3);font-size:12px;line-height:16px}
@@ -116,6 +120,44 @@ input{font:inherit;color:inherit}
 
 /* Панель слева, как в проводнике: сначала «где я», потом содержимое */
 .main{display:grid;grid-template-columns:292px 1fr;min-height:0}
+/* Сведения приезжают третьей колонкой и только по кнопке. Пока их нет,
+   .info выключена целиком и в раскладке не участвует. */
+.main.with-info{grid-template-columns:292px 1fr 300px}
+.info{display:none}
+.main.with-info .info{display:block;background:var(--s1);padding:16px;
+  overflow:auto;min-width:0}
+
+/* Превью крупное, но по месту, и не растянутое: панель узкая, а картинка
+   бывает какая угодно. Значок формата лежит под ней и уходит, когда она
+   приедет, ровно как на плитке. */
+.info .ipic{height:200px;display:flex;align-items:center;justify-content:center;
+  position:relative;margin-bottom:14px}
+.info .ipic > .ficon{position:absolute;inset:0;margin:auto;width:64px;height:64px}
+.info .ipic > .ibig{font-size:64px;color:var(--t3)}
+.info .ipic img{position:relative;max-width:100%;max-height:200px;width:auto;height:auto;
+  object-fit:contain;border-radius:6px;opacity:0;transition:opacity .12s}
+.info .ipic img.ok{opacity:1}
+.info .ipic:has(img.ok) > .ficon{display:none}
+
+.info .iname{font-size:14px;line-height:19px;font-weight:600;word-break:break-word}
+.info .ihead{margin-bottom:12px}
+
+/* Ключ и значение в две колонки: значения выстраиваются по левому краю
+   и читаются столбиком, а не ищутся глазами после разной длины ключей. */
+.info .irow{display:grid;grid-template-columns:88px 1fr;gap:8px;
+  padding:3px 0;font-size:13px;line-height:18px}
+.info .ik{color:var(--t3)}
+.info .iv{color:var(--t1);word-break:break-word}
+
+.info .iwarn{margin-top:10px;padding:8px 10px;border-radius:8px;
+  background:var(--s2);color:var(--t2);font-size:12px;line-height:16px}
+
+.info .itags-h{margin:14px 0 6px;color:var(--t3);font-size:12px}
+.info .itags{display:flex;flex-wrap:wrap;gap:6px}
+.info .itag{padding:3px 9px;border-radius:999px;background:var(--s3);
+  color:var(--t2);font-size:12px;line-height:16px}
+
+.info .inone{color:var(--t3);font-size:13px;line-height:19px}
 .files{padding:14px 16px;overflow:auto;min-width:0}
 .side{background:var(--s1);padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px}
 

@@ -17,7 +17,20 @@ function applySel() {
     el.classList.toggle('sel', sel.has(+el.dataset.id));
   });
   updateStatus();
+  window.tanbaCmdSync?.();
 }
+
+// Что командная панель должна знать про этот экран, см. cmdbar.js.
+// Каталог здесь настоящий, поэтому отдаём и вход внутрь, и своё удаление:
+// у каталога нет байтов, открывать и стирать его надо иначе, чем файл.
+window.tanbaCmd = {
+  selected: () => [...sel],
+  byId,
+  reload: () => load(),
+  tagName: id => name(id),
+  enter: id => enterCatalog(id),
+  delCatalog: file => deleteCatalogModal(file),
+};
 
 // Строка состояния как в проводнике: сколько всего, сколько выделено
 // и сколько это весит. Слова склоняются, «2 элементов» не бывает.
@@ -226,16 +239,15 @@ addEventListener('resize', closeCtx);
 
 async function runAct(act, file) {
   try {
+    // Открыть, переименовать, теги и удалить живут в cmdbar.js: те же четыре
+    // действия вынесены на командную панель, и держать их в двух местах
+    // значит однажды получить кнопку и пункт меню с разным поведением.
+    if (act === 'open' || act === 'rename' || act === 'tags' || act === 'del')
+      return cmdAct(act);
+
     if (act === 'enter') return enterCatalog(file.id);
-    if (act === 'open') {
-      for (const id of ids()) await jsend('/api/files/open', 'POST', { id });
-      return;
-    }
     if (act === 'reveal') return reveal(file.id);
-    if (act === 'rename') return renameModal(file);
-    if (act === 'tags') return tagsModal();
     if (act === 'tocat') return toast('Выбор каталога делаю следующим');
-    if (act === 'del') return deleteModal();
     if (act === 'delcat') return deleteCatalogModal(file);
   } catch (e) {
     toast('Не вышло: ' + e.message, 'err');
@@ -257,103 +269,6 @@ function openModal(html) {
   modal.onclick = e => { if (e.target === modal) closeModal(); };
   document.body.appendChild(modal);
   return modal.querySelector('.modal-box');
-}
-
-function renameModal(file) {
-  const box = openModal(`
-    <h2>Переименовать</h2>
-    <p>Расширение остаётся прежним, менять его вручную не нужно.</p>
-    <input class="name" value="${esc(file.name.replace(/\.[^.]+$/, ''))}" spellcheck="false">
-    <div class="modal-acts">
-      <button class="btn" data-no>Отмена</button>
-      <button class="btn btn-primary" data-yes>Переименовать</button>
-    </div>`);
-
-  const input = box.querySelector('.name');
-  input.focus();
-  input.select();
-
-  const save = async () => {
-    const nm = input.value.trim();
-    if (!nm) return closeModal();
-    const url = file.kind === 'catalog' ? '/api/catalogs/' + file.id : '/api/files/rename';
-    file.kind === 'catalog'
-      ? await jsend(url, 'PATCH', { name: nm })
-      : await jsend(url, 'POST', { id: file.id, name: nm });
-    closeModal();
-    await load();
-    toast('Переименовано');
-  };
-
-  input.onkeydown = e => { if (e.key === 'Enter') save(); };
-  box.querySelector('[data-yes]').onclick = save;
-  box.querySelector('[data-no]').onclick = closeModal;
-}
-
-async function tagsModal() {
-  const list = ids();
-  if (!list.length) return;
-
-  const data = await jget('/api/files/tagstates?ids=' + list.join(','));
-  const box = openModal(`
-    <h2>Теги</h2>
-    <p>Выделено объектов: ${list.length}. Промежуточная галочка означает,
-       что тег стоит не у всех.</p>
-    <div class="modal-groups" id="mg"></div>
-    <div class="modal-acts"><button class="btn btn-primary" data-no>Готово</button></div>`);
-
-  const draw = st => {
-    box.querySelector('#mg').innerHTML = st.groups.map(g => `
-      <div class="group">
-        <h3 style="cursor:default">${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
-        ${g.tags.map(t => `
-          <button class="tag" data-tag="${t.id}" data-state="${t.state}">
-            <span class="box ${t.state}${g.isMulti ? '' : ' radio'}">
-              <svg class="ic"><use href="#${t.state === 'partial' ? 'i-minus' : 'i-check'}"></use></svg>
-            </span>
-            <span class="lbl">${esc(t.name)}</span>
-          </button>`).join('')}
-      </div>`).join('');
-
-    box.querySelectorAll('[data-tag]').forEach(el => {
-      el.onclick = async () => {
-        // Промежуточное состояние: первый клик ставит тег всем выделенным.
-        await jsend('/api/tag', 'POST',
-          { fileIds: list, tagId: +el.dataset.tag, on: el.dataset.state !== 'on' });
-        draw(await jget('/api/files/tagstates?ids=' + list.join(',')));
-        load();
-      };
-    });
-  };
-
-  draw(data);
-  box.querySelector('[data-no]').onclick = closeModal;
-}
-
-function deleteModal() {
-  const list = ids();
-  if (!list.length) return;
-  const one = list.length === 1 ? byId(list[0]) : null;
-
-  const box = openModal(`
-    <h2>${one ? `Удалить «${esc(one.name)}»?` : `Удалить ${list.length} ${plural(list.length, 'файл', 'файла', 'файлов')}?`}</h2>
-    <p>Уйдёт в корзину Windows, насовсем не стирается. Достанешь обратно,
-       и файл вернётся вместе со всеми тегами.</p>
-    <div class="modal-acts">
-      <button class="btn" data-no>Отмена</button>
-      <button class="btn btn-danger" data-yes>Удалить</button>
-    </div>`);
-
-  box.querySelector('[data-yes]').onclick = async () => {
-    const r = await jsend('/api/files/delete', 'POST', { ids: list });
-    closeModal();
-    sel.clear();
-    await load();
-    toast(r.errors?.length ? 'Ошибки: ' + r.errors.join('; ')
-                           : `Удалено в корзину: ${r.deleted}`,
-          r.errors?.length ? 'err' : '');
-  };
-  box.querySelector('[data-no]').onclick = closeModal;
 }
 
 function deleteCatalogModal(file) {
