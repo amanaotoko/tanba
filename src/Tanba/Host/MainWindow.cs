@@ -147,7 +147,7 @@ public sealed partial class MainWindow : Form
         watcher.Changed += n =>
         {
             if (IsDisposed || !IsHandleCreated) return;
-            try { BeginInvoke(() => _tray?.Update(n)); }
+            try { BeginInvoke(() => { _tray?.Update(n); PostInbox(n); }); }
             catch (ObjectDisposedException) { }
             catch (InvalidOperationException) { }
         };
@@ -510,6 +510,19 @@ public sealed partial class MainWindow : Form
         base.OnResize(e);
         FitFrame();
         PostWinState();
+    }
+
+    /// <summary>
+    /// Говорит странице, что приём изменился. Раньше страница узнавала это
+    /// опросом раз в четыре секунды, и каждый опрос перерисовывал сетку,
+    /// отчего эскизы моргали без всякого повода.
+    /// </summary>
+    private void PostInbox(int pending)
+    {
+        var w = _web.CoreWebView2;
+        if (w is null) return;
+        try { w.PostWebMessageAsJson($$"""{"kind":"inbox","pending":{{pending}}}"""); }
+        catch (InvalidOperationException) { /* окно уже закрывается */ }
     }
 
     private void PostWinState()

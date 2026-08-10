@@ -382,15 +382,17 @@ function renderResults() {
       ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`
       : '');
 
-  // Двойной клик по каталогу входит внутрь, по файлу показывает его в проводнике.
+  // Двойной клик по каталогу входит внутрь, по файлу открывает сам файл,
+  // как в проводнике. Показать файл в проводнике осталось в правом меню:
+  // это отдельное действие, и им пользуются заметно реже, чем открывают.
   box.querySelectorAll('.card').forEach(el => {
     el.ondblclick = () => el.dataset.kind === 'catalog'
       ? enterCatalog(+el.dataset.id)
-      : reveal(+el.dataset.id);
+      : openFile(+el.dataset.id);
   });
   box.querySelectorAll('[data-add]').forEach(el => {
     el.onclick = e => { e.stopPropagation(); toggleTag(+el.dataset.add); };
-    el.ondblclick = e => e.stopPropagation();   // двойной клик по тегу не должен звать «показать файл»
+    el.ondblclick = e => e.stopPropagation();   // двойной клик по тегу не должен открывать файл
   });
   if ($('more')) $('more').onclick = () => load(true);
 }
@@ -494,6 +496,12 @@ $('q').oninput = () => {
 
 async function reveal(id) {
   try { await jsend('/api/library/reveal', 'POST', { id }); }
+  catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+}
+
+/// Открыть файл тем, чем его открывает система.
+async function openFile(id) {
+  try { await jsend('/api/files/open', 'POST', { id }); }
   catch (e) { toast('Не открылось: ' + e.message, 'err'); }
 }
 

@@ -53,9 +53,27 @@ const ICON = ext => {
   return 'i-file';
 };
 
+/// Что сейчас нарисовано в сетке, чтобы понимать, надо ли её пересобирать.
+let shownIds = [];
+
+/// Правит уже нарисованную карточку. Эскиз не трогаем намеренно.
+function patchCard(box, f, tagName) {
+  const el = box.querySelector(`.card[data-id="${f.id}"]`);
+  if (!el) return;
+
+  el.classList.toggle('sel', sel.has(f.id));
+
+  const chips = f.tags.map(id => `<span class="chip">${esc(tagName[id] || '?')}</span>`).join('');
+  const holder = el.querySelector('.chips');
+  if (!chips) { holder?.remove(); return; }
+  if (holder) { if (holder.innerHTML !== chips) holder.innerHTML = chips; }
+  else el.insertAdjacentHTML('beforeend', `<div class="chips">${chips}</div>`);
+}
+
 function renderFiles() {
   const box = $('files');
   if (!state.inbox.length) {
+    shownIds = [];
     box.innerHTML = `
       <div class="empty">
         <div class="circle"><svg class="ic"><use href="#i-inbox"></use></svg></div>
@@ -69,6 +87,7 @@ function renderFiles() {
   // человеку надо сказать, что файлы есть, просто их сейчас не видно.
   const list = visible();
   if (!list.length) {
+    shownIds = [];
     box.innerHTML = `
       <div class="empty">
         <div class="circle"><svg class="ic"><use href="#i-search"></use></svg></div>
@@ -81,6 +100,19 @@ function renderFiles() {
 
   const tagName = {};
   for (const g of state.groups) for (const t of g.tags) tagName[t.id] = t.name;
+
+  // Тот же набор файлов в том же порядке: сетку не пересобираем, а правим
+  // то, что могло измениться. Пересборка через innerHTML создаёт теги img
+  // заново, картинки уходят грузиться с нуля и все эскизы моргают.
+  // А сюда мы попадаем на каждый клик по файлу и на каждый поставленный тег,
+  // потому что состояние флажков считает сервер и его надо перезапросить.
+  const ids = list.map(f => f.id);
+  if (ids.length === shownIds.length && ids.every((id, i) => id === shownIds[i])
+      && box.querySelector('.grid')) {
+    for (const f of list) patchCard(box, f, tagName);
+    return;
+  }
+  shownIds = ids;
 
   box.innerHTML = `<div class="grid">` + list.map(f => `
     <div class="card${sel.has(f.id) ? ' sel' : ''}" data-id="${f.id}" draggable="true">
@@ -95,6 +127,12 @@ function renderFiles() {
 
   box.querySelectorAll('.card').forEach(el => {
     el.onclick = e => pick(+el.dataset.id, e);
+    // Двойным открывается сам файл: перед тем как вешать теги, обычно надо
+    // посмотреть, что это вообще такое, а по эскизу видно не всё.
+    el.ondblclick = async () => {
+      try { await api('/api/files/open', { id: +el.dataset.id }); }
+      catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+    };
   });
 }
 
@@ -108,7 +146,18 @@ function toggleGroup(name) {
   renderSide();
 }
 
+/// Слепок того, от чего зависит панель. Пока он тот же, панель не трогаем:
+/// перерисовка сбрасывает фокус, и набранное в поле «новый тег» пропадало бы
+/// при каждом обновлении состояния.
+let sideKey = '';
+
 function renderSide() {
+  const key = JSON.stringify([sel.size, [...collapsed],
+    state.groups.map(g => [g.id, g.name, g.isMulti,
+      g.tags.map(t => [t.id, t.name, t.state, t.count])])]);
+  if (key === sideKey) return;
+  sideKey = key;
+
   const n = sel.size;
   const top = n
     ? `<div class="dim">Выделено: ${n} ${plural(n, 'файл', 'файла', 'файлов')}</div>`
@@ -376,4 +425,14 @@ function plural(n, one, few, many) {
 }
 
 load();
-setInterval(load, 4000);   // приём мог пополниться извне
+
+// Про пополнение приёма извне программа узнаёт от наблюдателя за папкой
+// и говорит нам сама, сразу. Опрос по таймеру оставлен только страховкой
+// на случай потерянного сообщения, и он редкий: при неизменных данных
+// перерисовки всё равно не будет, но и лишний запрос раз в четыре секунды
+// ни к чему.
+const host = window.chrome && window.chrome.webview;
+if (host) host.addEventListener('message', e => {
+  if (e.data && e.data.kind === 'inbox') load();
+});
+setInterval(load, host ? 30000 : 4000);
