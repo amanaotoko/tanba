@@ -110,12 +110,14 @@ a.btn{text-decoration:none}
 .mini:disabled{opacity:.4;cursor:default}
 .mini:disabled:hover{background:var(--s3);color:var(--t2)}
 
-/* Строка дерева стоит просторнее строки фильтра: по ней ходят, а не
-   пробегают глазами, и попасть мышью надо с первого раза.
+/* Дерево той же высоты, что и остальные строки панели, 32 пикселя как
+   в проводнике. Раньше оно стояло просторнее, на 38, но одна панель с двумя
+   разными ростами строк читается как недосмотр, а не как замысел.
+   Шире только боковой отступ: у дерева есть уровни, и им нужен разбег.
    Базовый отступ задаётся здесь, --pad. Код проставляет только глубину
    вложенности через --depth и в сами отступы не лезет. */
 .tag-tree{--pad:12px;
-  padding:10px var(--pad);
+  padding:6px var(--pad);
   padding-left:calc(var(--pad) + var(--depth, 0) * 16px)}
 
 /* Где я сейчас в дереве каталога */
@@ -126,10 +128,23 @@ a.btn{text-decoration:none}
 .pill-cat{background:transparent;color:var(--t2);font-weight:400;cursor:pointer;gap:6px;padding:0 8px}
 .pill-cat:hover{background:var(--s3);color:var(--t1)}
 .pill-cat .ic{font-size:13px;color:var(--t3)}
+/* Значок раздела в начале области отбора, как в адресной строке проводника.
+   Внутри каталога он же выход наверх, снаружи просто метка места. Нажимается
+   только когда есть куда выйти, поэтому и курсор меняется по data-goto. */
+.pill-root{padding:0 7px;cursor:default}
+.pill-root .ic{font-size:15px;color:var(--t2)}
+.pill-root:hover{background:transparent}
+.pill-root[data-goto]{cursor:pointer}
+.pill-root[data-goto]:hover{background:var(--s4)}
+.pill-root[data-goto]:hover .ic{color:var(--t1)}
+
 /* Где ты сейчас: последнее звено выделено весом, а не заливкой */
 .pill-here{color:var(--t1);font-weight:600}
 .pill-here .ic{color:var(--t2)}
-.crumb-sep{color:var(--t3);font-size:13px}
+/* Разделитель пути шевроном, как в проводнике. Значок папки у звеньев убран:
+   в пути и так всё папки, и повторять это на каждом шаге незачем. */
+.crumb-sep{display:flex;align-items:center;color:var(--t3)}
+.crumb-sep .ic{font-size:14px}
 
 /* Каталог в сетке отличается только значком и подписью «сколько внутри» */
 .card-cat .thumb{color:var(--t2)}

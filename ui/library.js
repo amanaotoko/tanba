@@ -142,18 +142,19 @@ async function enterCatalog(id) {
 function renderScope() {
   const box = $('scope');
 
-  // Крошки. Начинаются с «Библиотека»: это выход наружу, и он должен быть
-  // виден, а не прятаться в крестике. Дальше путь по каталогам, он честный,
-  // потому что у каталогов иерархия настоящая.
+  // Начинается со значка раздела, как адресная строка проводника. Внутри
+  // каталога он же и выход наверх: слово «Библиотека» тут лишнее, значок
+  // говорит то же самое и не занимает полстроки.
   const path = catInfo && catInfo.path || [];
-  const crumbs = !pick.cat ? '' : `
-    <span class="pill pill-cat" data-goto="" title="Выйти в библиотеку">Библиотека</span>`
+  const crumbs = `
+    <span class="pill pill-cat pill-root"${pick.cat ? ' data-goto=""' : ''}
+          title="${pick.cat ? 'Выйти в библиотеку' : 'Библиотека'}">
+      <svg class="ic"><use href="#i-lib"></use></svg>
+    </span>`
     + path.map(p => `
-    <span class="crumb-sep">/</span>
+    <span class="crumb-sep"><svg class="ic"><use href="#i-crumb"></use></svg></span>
     <span class="pill pill-cat${p.id === pick.cat ? ' pill-here' : ''}" data-goto="${p.id}"
-          title="Перейти в «${esc(p.name)}»">
-      <svg class="ic"><use href="#i-folder"></use></svg>${esc(p.name)}
-    </span>`).join('');
+          title="Перейти в «${esc(p.name)}»">${esc(p.name)}</span>`).join('');
 
   box.innerHTML = crumbs + pick.tags.map(id => `
     <span class="pill">${esc(name(id))}<button class="x" data-drop="${id}" title="Убрать тег">

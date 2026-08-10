@@ -237,7 +237,12 @@ function toggleQueryTag(id) {
 
 function renderScope() {
   const box = $('scope');
-  box.innerHTML = query.tags.map(id => `
+  // Значок раздела в начале, как в библиотеке и как в проводнике. Выходить
+  // отсюда некуда, поэтому он просто метка места и не нажимается.
+  box.innerHTML = `
+    <span class="pill pill-cat pill-root" title="Приём">
+      <svg class="ic"><use href="#i-inbox"></use></svg>
+    </span>` + query.tags.map(id => `
     <span class="pill">${esc(nameOf(id))}<button class="x" data-drop="${id}" title="Убрать тег">
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('');
   box.querySelectorAll('[data-drop]').forEach(el => {
