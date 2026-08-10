@@ -270,7 +270,6 @@ a.btn{text-decoration:none}
 .card .chip{cursor:pointer}
 .card .chip:hover{background:var(--s4);color:var(--t1)}
 .card .chip-on:hover{background:var(--t1);color:var(--bg)}
-.card .meta{gap:8px}
 
 .more{display:flex;justify-content:center;padding:14px 0 4px}
 

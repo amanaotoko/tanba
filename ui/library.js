@@ -366,9 +366,6 @@ function renderResults() {
         ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}
       </div>
       <div class="name">${esc(f.name)}</div>
-      ${f.kind === 'catalog'
-        ? `<div class="meta"><span class="dim mono">${f.count || 0} внутри</span></div>`
-        : ''}
     </div>`).join('') + `</div>`
     + (res.files.length < res.total
       ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`

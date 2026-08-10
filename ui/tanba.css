@@ -248,14 +248,11 @@ a.btn.btn-ghost:hover{color:var(--t1)}
    и радиус срезал бы ему углы. */
 .card .thumb > .ficon{width:var(--icon);height:var(--icon);
   max-width:none;max-height:none;border-radius:0;opacity:1}
-/* Под именем больше ничего нет: размер и дата уехали в панель сведений,
-   на плитке они занимали строку, а спрашивают о них редко. Поэтому имя
-   само держит нижний отступ, и отдаёт его, только если снизу правда есть
-   строка, как у каталога с числом объектов внутри. */
+/* Под именем не пишется ничего. Размер, дата и число объектов в каталоге
+   уехали в панель сведений: на плитке они занимали целую строку, а узнать
+   файл помогает картинка, а не его вес. */
 .card .name{padding:8px 10px 10px;font-size:13px;line-height:17px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card .name:has(+ .meta){padding-bottom:2px}
-.card .meta{padding:0 10px 10px;display:flex;gap:6px;align-items:center}
 
 /* Чипов тегов на карточке больше нет. Они переносились свободно, и файл
    с одиннадцатью тегами делал свою строку втрое выше соседних, оставляя
