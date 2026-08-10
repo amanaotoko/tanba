@@ -188,18 +188,24 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 
 /* Картинка видна целиком, а не подрезана по краям, и не растягивается выше
    своего настоящего размера: мелкий логотип на крупной плитке иначе
-   расползается в мыло. */
+   расползается в мыло.
+   Углы скруглены слабее, чем у карточки: 6 против 12. Повторять её радиус
+   нельзя, картинка лежит на 10 пикселей внутрь, и одинаковый радиус на
+   вложенном прямоугольнике читается как более круглый, чем у внешнего. */
 .card .thumb img{position:relative;width:auto;height:auto;
-  max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .12s}
+  max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;
+  opacity:0;transition:opacity .12s}
 .card .thumb img.ok{opacity:1}
 
 /* Значок формата рисуется мелко и фиксированно, а не подгоняется под плитку.
    Это ровно то, из-за чего прошлый заход и провалился: сюда попадал значок
    программы во всю ширину, и красный логотип pdf кричал громче картинок
    вокруг. Размер свой на каждый размер плитки. Правило стоит после общего
-   про img, иначе max-width из него сожмёт значок на мелкой плитке. */
+   про img, иначе max-width из него сожмёт значок на мелкой плитке.
+   Скругления здесь нет: значок нарисован листом бумаги со своим силуэтом,
+   и радиус срезал бы ему углы. */
 .card .thumb > .ficon{width:var(--icon);height:var(--icon);
-  max-width:none;max-height:none;opacity:1}
+  max-width:none;max-height:none;border-radius:0;opacity:1}
 .card .name{padding:8px 10px 2px;font-size:13px;line-height:17px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .meta{padding:0 10px 10px;display:flex;gap:6px;align-items:center}
