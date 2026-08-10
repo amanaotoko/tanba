@@ -132,9 +132,11 @@ public sealed partial class Thumbs(Config cfg)
 
     // ── оболочка ─────────────────────────────────────────────────────────
 
-    /// Порядок отката: настоящий эскиз, потом что дадут, потом хотя бы значок.
-    private static readonly SIIGBF[] Attempts =
-        [SIIGBF.ThumbnailOnly, SIIGBF.ResizeToFit, SIIGBF.IconOnly];
+    /// Только настоящий эскиз. Отката к значку нет намеренно: оболочка отдавала
+    /// значок программы, растянутый на всю плитку, и красный логотип pdf кричал
+    /// громче самих картинок. Нет эскиза значит нет картинки, а тип файла
+    /// покажет наш собственный значок, нарисованный в цвет интерфейса.
+    private static readonly SIIGBF[] Attempts = [SIIGBF.ThumbnailOnly];
 
     private static Bitmap? Extract(string path, int size) => RunSta(() =>
     {

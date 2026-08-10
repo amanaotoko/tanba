@@ -157,7 +157,11 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));
   gap:10px;align-content:start}
 
-.card{background:var(--s1);border-radius:12px;overflow:hidden;cursor:pointer;
+/* Плитка ровно квадратная, вместе с подписью. Раньше квадратной была только
+   область картинки, а имя и размер добавлялись снизу, и ячейка выходила
+   прямоугольной: сетка читалась как столбики, а не как ровное поле. */
+.card{aspect-ratio:1;display:flex;flex-direction:column;
+  background:var(--s1);border-radius:12px;overflow:hidden;cursor:pointer;
   position:relative}
 .card:hover{background:var(--s2)}
 .card.sel{background:var(--s2)}
@@ -169,12 +173,22 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 /* Квадрат, как в проводнике. Раньше было 148 на 82, почти 16:9, и вертикальная
    картинка обрезалась в полоску, а значок файла без превью раздувался на всю
    плитку. Одинаковая форма ещё и держит ряды ровными. */
-.card .thumb{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-  background:var(--s2);color:var(--t3);font-size:24px;position:relative;overflow:hidden}
-.card.sel .thumb{background:var(--s3)}
-/* Эскиз ложится поверх значка типа: пока Windows его рисует, видно значок. */
-.card .thumb img{position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;opacity:0;transition:opacity .12s}
+/* Подложки нет: картинка лежит прямо на карточке. Отступ такой же, как
+   у имени и размера снизу, поэтому поля у карточки общие со всех сторон. */
+.card .thumb{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:10px;color:var(--t3);font-size:28px;position:relative;overflow:hidden}
+
+/* Значок типа лежит под картинкой: пока Windows её рисует, видно значок.
+   Как только картинка пришла, значок убираем совсем: у картинок бывает
+   прозрачность, и он просвечивал бы сквозь неё. */
+.card .thumb > .ic{position:absolute;inset:0;margin:auto}
+.card .thumb:has(img.ok) > .ic{display:none}
+
+/* Картинка видна целиком, а не подрезана по краям, и не растягивается выше
+   своего настоящего размера: мелкий логотип на крупной плитке иначе
+   расползается в мыло. */
+.card .thumb img{position:relative;width:auto;height:auto;
+  max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .12s}
 .card .thumb img.ok{opacity:1}
 .card .name{padding:8px 10px 2px;font-size:13px;line-height:17px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
