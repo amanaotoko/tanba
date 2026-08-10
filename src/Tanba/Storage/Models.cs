@@ -8,7 +8,15 @@ public sealed record FileRow(
     long? Size,
     string? Sha256,
     long AddedAt,
-    bool Pending);
+    bool Pending,
+    /// <summary>
+    /// Когда файл последний раз сохраняли. Единственная дата, которая
+    /// говорит о самом файле: AddedAt это про программу, а время создания
+    /// в Windows это время появления вот этой копии, и на всех файлах
+    /// хранилища оно позже времени изменения, потому что копировали их
+    /// сюда позже, чем рисовали.
+    /// </summary>
+    long? Mtime = null);
 
 public sealed record TagRow(
     long Id,

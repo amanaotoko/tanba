@@ -67,7 +67,7 @@ public sealed class Repo(Db db)
     public List<FileRow> ListInbox(SqliteConnection c)
     {
         using var cmd = c.Sql("""
-            SELECT id, rel_path, orig_name, ext, size, sha256, added_at
+            SELECT id, rel_path, orig_name, ext, size, sha256, added_at, file_mtime
             FROM files
             WHERE is_missing = 0 AND rel_path LIKE $pfx
             ORDER BY added_at, id
@@ -162,7 +162,9 @@ public sealed class Repo(Db db)
             var rel = r.GetString(1);
             list.Add(new FileRow(
                 r.GetInt64(0), rel, r.GetString(2), r.Str(3), r.Num(4), r.Str(5), r.GetInt64(6),
-                Pending: rel.StartsWith(Config.InboxName + @"\", StringComparison.OrdinalIgnoreCase)));
+                Pending: rel.StartsWith(Config.InboxName + @"\", StringComparison.OrdinalIgnoreCase),
+                // Столбца может не быть: не всякий запрос его выбирает.
+                Mtime: r.FieldCount > 7 ? r.Num(7) : null));
         }
         return list;
     }

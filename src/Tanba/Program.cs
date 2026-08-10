@@ -118,6 +118,10 @@ app.MapGet("/api/state", (string? sel) =>
             ext = f.Ext,
             size = f.Size,
             addedAt = f.AddedAt,
+            // Дата самого файла, для панели сведений. Времени создания здесь
+            // нет намеренно: в Windows это время появления копии, и на всех
+            // файлах хранилища оно позже времени изменения.
+            modifiedAt = f.Mtime,
             tags = perFile[f.Id],
         }),
         groups = groups.Select(g => new
