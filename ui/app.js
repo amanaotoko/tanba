@@ -46,13 +46,6 @@ function render() {
   $('statSize').textContent = fmtSize(s.bytes || 0);
 }
 
-const ICON = ext => {
-  if (/^(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic|svg)$/.test(ext || '')) return 'i-image';
-  if (/^(mp4|mov|avi|mkv|webm|m4v)$/.test(ext || '')) return 'i-play';
-  if (/^(pdf|docx?|xlsx?|pptx?|txt|rtf)$/.test(ext || '')) return 'i-doc';
-  return 'i-file';
-};
-
 /// Что сейчас нарисовано в сетке, чтобы понимать, надо ли её пересобирать.
 let shownIds = [];
 
@@ -126,7 +119,7 @@ function renderFiles() {
     <div class="card${sel.has(f.id) ? ' sel' : ''}" data-id="${f.id}" draggable="true"
          title="${tipAttr(f, tagName)}">
       <div class="thumb">
-        <svg class="ic"><use href="#${ICON(f.ext)}"></use></svg>
+        ${ftypeIcon(f.ext)}
         <img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">
       </div>
       <div class="name">${esc(f.name)}</div>

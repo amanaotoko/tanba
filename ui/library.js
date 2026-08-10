@@ -334,13 +334,6 @@ function renderPanel() {
   });
 }
 
-const ICON = ext => {
-  if (/^(jpg|jpeg|png|gif|bmp|tif|tiff|webp|heic|svg)$/.test(ext || '')) return 'i-image';
-  if (/^(mp4|mov|avi|mkv|webm|m4v)$/.test(ext || '')) return 'i-play';
-  if (/^(pdf|docx?|xlsx?|pptx?|txt|rtf)$/.test(ext || '')) return 'i-doc';
-  return 'i-file';
-};
-
 function renderResults() {
   const box = $('results');
 
@@ -365,7 +358,9 @@ function renderResults() {
          data-id="${f.id}" data-kind="${f.kind || 'file'}" draggable="true"
          title="${tip(f)}">
       <div class="thumb">
-        <svg class="ic"><use href="#${f.kind === 'catalog' ? 'i-folder' : ICON(f.ext)}"></use></svg>
+        ${f.kind === 'catalog'
+          ? `<svg class="ic"><use href="#i-folder"></use></svg>`
+          : ftypeIcon(f.ext)}
         ${f.kind === 'catalog' ? ''
           : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
         ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}

@@ -150,9 +150,9 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 /* Размер плитки живёт одной переменной, и от неё считается вся сетка.
    Класс висит на .files, а не на .grid: сетка пересобирается при каждой
    отрисовке, а обёртка нет, и выбранный размер её переживает. */
-.files{--tile:144px}
-.files.tile-s{--tile:104px}
-.files.tile-l{--tile:208px}
+.files{--tile:144px;--icon:52px}
+.files.tile-s{--tile:104px;--icon:40px}
+.files.tile-l{--tile:208px;--icon:76px}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));
   gap:10px;align-content:start}
@@ -181,8 +181,10 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 /* Значок типа лежит под картинкой: пока Windows её рисует, видно значок.
    Как только картинка пришла, значок убираем совсем: у картинок бывает
    прозрачность, и он просвечивал бы сквозь неё. */
-.card .thumb > .ic{position:absolute;inset:0;margin:auto}
-.card .thumb:has(img.ok) > .ic{display:none}
+.card .thumb > .ic,
+.card .thumb > .ficon{position:absolute;inset:0;margin:auto}
+.card .thumb:has(img.ok) > .ic,
+.card .thumb:has(img.ok) > .ficon{display:none}
 
 /* Картинка видна целиком, а не подрезана по краям, и не растягивается выше
    своего настоящего размера: мелкий логотип на крупной плитке иначе
@@ -190,6 +192,14 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 .card .thumb img{position:relative;width:auto;height:auto;
   max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .12s}
 .card .thumb img.ok{opacity:1}
+
+/* Значок формата рисуется мелко и фиксированно, а не подгоняется под плитку.
+   Это ровно то, из-за чего прошлый заход и провалился: сюда попадал значок
+   программы во всю ширину, и красный логотип pdf кричал громче картинок
+   вокруг. Размер свой на каждый размер плитки. Правило стоит после общего
+   про img, иначе max-width из него сожмёт значок на мелкой плитке. */
+.card .thumb > .ficon{width:var(--icon);height:var(--icon);
+  max-width:none;max-height:none;opacity:1}
 .card .name{padding:8px 10px 2px;font-size:13px;line-height:17px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .meta{padding:0 10px 10px;display:flex;gap:6px;align-items:center}
