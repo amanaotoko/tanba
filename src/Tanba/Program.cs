@@ -91,15 +91,6 @@ app.UseStaticFiles(new StaticFileOptions
 
 // ── Состояние экрана разбора ─────────────────────────────────────────────
 
-// Числа на вкладках. Свой запрос, потому что вкладки есть на всех экранах,
-// а /api/state отдаёт весь приём целиком и звать его ради трёх чисел дорого.
-app.MapGet("/api/counts", () =>
-{
-    using var c = repo.Open();
-    var (inbox, files, tags) = repo.Counts(c);
-    return Results.Ok(new { inbox, files, tags });
-});
-
 app.MapGet("/api/state", (string? sel) =>
 {
     var selected = ParseIds(sel);

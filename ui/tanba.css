@@ -77,21 +77,10 @@ input{font:inherit;color:inherit}
   app-region:no-drag;-webkit-app-region:no-drag}
 
 /* Активная вкладка забирает цвет того, что лежит под ней, и срастается
-   с содержимым. Остальные остаются на фоне полосы.
-   Ширина снята с проводника: его вкладка ровно 240 на 32, наша 240 на 31.
-   Раньше вкладка была по размеру подписи, и полоса выходила рваной, четыре
-   разных прямоугольника подряд. Третье значение flex позволяет им сжиматься
-   на узком окне, как сжимаются и в проводнике. */
-.tab{display:flex;align-items:center;gap:8px;height:31px;
-  box-sizing:border-box;width:240px;flex:0 1 auto;min-width:88px;padding:0 12px;
+   с содержимым. Остальные остаются на фоне полосы. */
+.tab{display:flex;align-items:center;gap:8px;height:31px;padding:0 12px;
   border-radius:8px 8px 0 0;font-size:13px;line-height:1;color:var(--t2);
   text-decoration:none;white-space:nowrap}
-/* Название отдаёт место числу и обрезается само, а не выталкивает его. */
-.tname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-/* Число раздела стоит там, где у проводника крестик закрытия. Оно тише
-   названия и набрано моноширинными цифрами, чтобы не дёргалось при счёте. */
-.tnum{flex:none;font-size:11px;color:var(--t3);font-variant-numeric:tabular-nums}
-.tab.on .tnum{color:var(--t2)}
 /* Значок чуть крупнее подписи: он опознаётся первым, по нему и находят
    нужную вкладку, не читая. Цвет наследуется, поэтому у невыбранных
    вкладок значок гаснет вместе с текстом. */

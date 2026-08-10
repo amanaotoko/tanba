@@ -326,26 +326,6 @@ public sealed class Repo(Db db)
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>
-    /// Три числа для вкладок. Отдельно от Stats и от /api/state потому, что
-    /// вкладки висят на каждом экране, а state тащит с собой весь приём вместе
-    /// с тегами каждого файла: сотня строк ради трёх чисел.
-    ///
-    /// Приём считается тем же условием, что и в ListInbox, иначе вкладка и
-    /// сам экран разошлись бы в показаниях.
-    /// </summary>
-    public (long Inbox, long Files, long Tags) Counts(SqliteConnection c)
-    {
-        using var cmd = c.Sql("""
-            SELECT (SELECT count(*) FROM files WHERE is_missing=0 AND rel_path LIKE $pfx),
-                   (SELECT count(*) FROM files WHERE is_missing=0 AND rel_path NOT LIKE $pfx),
-                   (SELECT count(*) FROM tags)
-            """, ("$pfx", Config.InboxName + @"\%"));
-        using var r = cmd.ExecuteReader();
-        r.Read();
-        return (r.GetInt64(0), r.GetInt64(1), r.GetInt64(2));
-    }
-
     /// <summary>Счётчики для шапки. Файлы из приёма ещё не в каталоге, их не считаем.</summary>
     public (long Files, long Untagged, long Bytes) Stats(SqliteConnection c)
     {
