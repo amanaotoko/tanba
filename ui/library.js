@@ -361,6 +361,7 @@ function renderResults() {
         ${f.kind === 'catalog'
           ? `<svg class="ic"><use href="#i-folder"></use></svg>`
           : ftypeIcon(f.ext)}
+        ${f.kind === 'catalog' ? '' : ftypeBadge(f.ext)}
         ${f.kind === 'catalog' ? ''
           : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
         ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}

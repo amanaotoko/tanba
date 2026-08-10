@@ -155,6 +155,7 @@ function renderFiles() {
          title="${tipAttr(f, tagName)}">
       <div class="thumb">
         ${ftypeIcon(f.ext)}
+        ${ftypeBadge(f.ext)}
         <img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">
       </div>
       <div class="name">${esc(f.name)}</div>
