@@ -363,7 +363,7 @@ function renderResults() {
   box.innerHTML = `<div class="grid">` + res.files.map(f => `
     <div class="card${f.kind === 'catalog' ? ' card-cat' : ''}${f.movedTo ? ' card-away' : ''}"
          data-id="${f.id}" data-kind="${f.kind || 'file'}" draggable="true"
-         title="${f.movedTo ? 'Уехал из хранилища: ' + esc(f.movedTo) : esc(f.name)}">
+         title="${tip(f)}">
       <div class="thumb">
         <svg class="ic"><use href="#${f.kind === 'catalog' ? 'i-folder' : ICON(f.ext)}"></use></svg>
         ${f.kind === 'catalog' ? ''
@@ -375,10 +375,6 @@ function renderResults() {
         <span class="dim mono">${fmtSize(f.size)}</span>
         <span class="dim mono">${f.kind === 'catalog' ? (f.count || 0) + ' внутри' : fmtDate(f.addedAt)}</span>
       </div>
-      ${(f.tags || []).length ? `<div class="chips">${f.tags.map(id => `
-        <span class="chip${pick.tags.includes(id) ? ' chip-on' : ''}" data-add="${id}"
-              title="${pick.tags.includes(id) ? 'Убрать из отбора' : 'Добавить в отбор'}"
-              >${esc(name(id))}</span>`).join('')}</div>` : ''}
     </div>`).join('') + `</div>`
     + (res.files.length < res.total
       ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`
@@ -399,7 +395,18 @@ function renderResults() {
   if ($('more')) $('more').onclick = () => load(true);
 }
 
-/// Вложенность внутри группы: ребёнок идёт сразу за своим родителем.
+//// Подсказка карточки. Теги переехали сюда с самой карточки: там они
+/// переносились и рвали высоту рядов. Перевод строки в подсказке задаётся
+/// мнемоникой, обычный \n в значении атрибута не сработает.
+function tip(f) {
+  const tags = (f.tags || []).map(id => name(id)).filter(Boolean);
+  const parts = [f.name];
+  if (tags.length) parts.push(tags.join(', '));
+  if (f.movedTo) parts.push('Уехал из хранилища: ' + f.movedTo);
+  return esc(parts.join('\n')).replace(/\n/g, '&#10;');
+}
+
+// Вложенность внутри группы: ребёнок идёт сразу за своим родителем.
 function nest(tags) {
   const ids = new Set(tags.map(t => t.id));
   const kids = {}, roots = [], out = [];

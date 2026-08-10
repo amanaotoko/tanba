@@ -55,6 +55,9 @@ a.btn{text-decoration:none}
 
 .pick > .seg{padding:3px}
 .pick > .seg button{height:26px;border-radius:6px;padding:0 13px}
+/* Деления со значком вместо подписи: размер плиток называть словами негде */
+.pick > .seg button:has(.ic){padding:0 8px}
+.pick > .seg button .ic{font-size:14px;display:block}
 
 /* Поле отбора того же цвета, что И/ИЛИ: вся левая часть читается как одно
    место «вот что я ищу», а не как чипы, рассыпанные по пустому фону. */

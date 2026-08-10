@@ -56,18 +56,26 @@ const ICON = ext => {
 /// Что сейчас нарисовано в сетке, чтобы понимать, надо ли её пересобирать.
 let shownIds = [];
 
+/// Подсказка карточки: имя и разметка. Теги переехали сюда с самой карточки,
+/// где они переносились и делали ряды разной высоты. На этом экране они видны
+/// ещё и в панели: выдели файл, и флажки покажут, чем он помечен.
+function tip(f, tagName) {
+  const tags = (f.tags || []).map(id => tagName[id]).filter(Boolean);
+  return tags.length ? f.name + '\n' + tags.join(', ') : f.name;
+}
+
+/// То же самое для вставки в разметку. Перенос строки внутри значения
+/// атрибута приходится писать мнемоникой, зато при живом узле её писать
+/// нельзя: мнемоники расшифровывает разбор разметки, а не установка свойства.
+const tipAttr = (f, tagName) => esc(tip(f, tagName)).replace(/\n/g, '&#10;');
+
 /// Правит уже нарисованную карточку. Эскиз не трогаем намеренно.
 function patchCard(box, f, tagName) {
   const el = box.querySelector(`.card[data-id="${f.id}"]`);
   if (!el) return;
-
   el.classList.toggle('sel', sel.has(f.id));
-
-  const chips = f.tags.map(id => `<span class="chip">${esc(tagName[id] || '?')}</span>`).join('');
-  const holder = el.querySelector('.chips');
-  if (!chips) { holder?.remove(); return; }
-  if (holder) { if (holder.innerHTML !== chips) holder.innerHTML = chips; }
-  else el.insertAdjacentHTML('beforeend', `<div class="chips">${chips}</div>`);
+  const t = tip(f, tagName);
+  if (el.title !== t) el.title = t;
 }
 
 function renderFiles() {
@@ -115,14 +123,14 @@ function renderFiles() {
   shownIds = ids;
 
   box.innerHTML = `<div class="grid">` + list.map(f => `
-    <div class="card${sel.has(f.id) ? ' sel' : ''}" data-id="${f.id}" draggable="true">
+    <div class="card${sel.has(f.id) ? ' sel' : ''}" data-id="${f.id}" draggable="true"
+         title="${tipAttr(f, tagName)}">
       <div class="thumb">
         <svg class="ic"><use href="#${ICON(f.ext)}"></use></svg>
         <img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">
       </div>
-      <div class="name" title="${esc(f.name)}">${esc(f.name)}</div>
+      <div class="name">${esc(f.name)}</div>
       <div class="meta"><span class="dim mono">${fmtSize(f.size)}</span></div>
-      ${f.tags.length ? `<div class="chips">${f.tags.map(id => `<span class="chip">${esc(tagName[id] || '?')}</span>`).join('')}</div>` : ''}
     </div>`).join('') + `</div>`;
 
   box.querySelectorAll('.card').forEach(el => {

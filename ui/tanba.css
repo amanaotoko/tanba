@@ -147,7 +147,15 @@ a.btn.btn-ghost:hover{color:var(--t1)}
 
 /* ── Сетка файлов ───────────────────────────────────────────────────── */
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+/* Размер плитки живёт одной переменной, и от неё считается вся сетка.
+   Класс висит на .files, а не на .grid: сетка пересобирается при каждой
+   отрисовке, а обёртка нет, и выбранный размер её переживает. */
+.files{--tile:144px}
+.files.tile-s{--tile:104px}
+.files.tile-l{--tile:208px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));
+  gap:10px;align-content:start}
 
 .card{background:var(--s1);border-radius:12px;overflow:hidden;cursor:pointer;
   position:relative}
@@ -158,17 +166,24 @@ a.btn.btn-ghost:hover{color:var(--t1)}
    позже родителя и накрывают её. */
 .card.sel::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
   border:2px solid var(--a1);border-radius:inherit}
-.card .thumb{height:82px;display:flex;align-items:center;justify-content:center;
+/* Квадрат, как в проводнике. Раньше было 148 на 82, почти 16:9, и вертикальная
+   картинка обрезалась в полоску, а значок файла без превью раздувался на всю
+   плитку. Одинаковая форма ещё и держит ряды ровными. */
+.card .thumb{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
   background:var(--s2);color:var(--t3);font-size:24px;position:relative;overflow:hidden}
 .card.sel .thumb{background:var(--s3)}
 /* Эскиз ложится поверх значка типа: пока Windows его рисует, видно значок. */
 .card .thumb img{position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;opacity:0;transition:opacity .12s}
 .card .thumb img.ok{opacity:1}
-.card .name{padding:8px 10px 3px;font-size:13px;line-height:17px;
+.card .name{padding:8px 10px 2px;font-size:13px;line-height:17px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card .meta{padding:0 10px 9px;display:flex;gap:6px;align-items:center}
-.card .chips{padding:0 10px 9px;display:flex;flex-wrap:wrap;gap:4px}
+.card .meta{padding:0 10px 10px;display:flex;gap:6px;align-items:center}
+
+/* Чипов тегов на карточке больше нет. Они переносились свободно, и файл
+   с одиннадцатью тегами делал свою строку втрое выше соседних, оставляя
+   рядом дыры пустоты. Разметка видна в подсказке при наведении, а на разборе
+   ещё и в панели, когда файл выделен. */
 
 .chip{padding:2px 7px;border-radius:6px;background:var(--s3);color:var(--t2);
   font-size:11px;line-height:15px;white-space:nowrap}

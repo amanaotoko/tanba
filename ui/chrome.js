@@ -52,6 +52,16 @@
         'a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08' +
         'a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38' +
         'a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></symbol>' +
+      '<symbol id="v-s" viewBox="0 0 24 24">' +
+        '<rect x="4" y="4" width="4" height="4" rx="1"/><rect x="10" y="4" width="4" height="4" rx="1"/>' +
+        '<rect x="16" y="4" width="4" height="4" rx="1"/><rect x="4" y="10" width="4" height="4" rx="1"/>' +
+        '<rect x="10" y="10" width="4" height="4" rx="1"/><rect x="16" y="10" width="4" height="4" rx="1"/>' +
+        '<rect x="4" y="16" width="4" height="4" rx="1"/><rect x="10" y="16" width="4" height="4" rx="1"/>' +
+        '<rect x="16" y="16" width="4" height="4" rx="1"/></symbol>' +
+      '<symbol id="v-m" viewBox="0 0 24 24">' +
+        '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/>' +
+        '<rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></symbol>' +
+      '<symbol id="v-l" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>' +
       '<symbol id="w-min" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>' +
       '<symbol id="w-max" viewBox="0 0 24 24"><rect x="7.5" y="7.5" width="9" height="9" rx="1.5"/></symbol>' +
       '<symbol id="w-rest" viewBox="0 0 24 24">' +
@@ -69,6 +79,24 @@
       '<button class="wbtn wclose" data-win="close" title="Закрыть">' +
         '<svg class="ic"><use href="#w-close"></use></svg></button>' +
     '</div>';
+
+  // Размер плиток. Класс вешаем на обёртку .files, а не на саму сетку:
+  // сетку перерисовывают на каждое действие, обёртку нет, и выбранный
+  // размер её переживает без всякой возни с восстановлением.
+  var files = document.querySelector('.files');
+  var seg = document.getElementById('tile');
+  if (files && seg) {
+    var setTile = function (size) {
+      files.classList.remove('tile-s', 'tile-l');
+      if (size === 's' || size === 'l') files.classList.add('tile-' + size);
+      [].forEach.call(seg.children, function (b) { b.classList.toggle('on', b.dataset.tile === size); });
+      localStorage.setItem('tanba-tile', size);
+    };
+    [].forEach.call(seg.children, function (b) {
+      b.onclick = function () { setTile(b.dataset.tile); };
+    });
+    setTile(localStorage.getItem('tanba-tile') || 'm');
+  }
 
   var bridge = window.chrome && window.chrome.webview;
 
