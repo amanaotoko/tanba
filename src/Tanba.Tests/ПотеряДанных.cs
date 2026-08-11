@@ -52,7 +52,7 @@ public sealed class ПотеряДанных
 
         ОткатитьКСтаромуИмени(b);
         b.Cfg.RenameOldInbox();
-        b.Db.Migrate();
+        InboxMove.Carry(b.Cfg, b.Repo);
 
         Assert.False(Directory.Exists(Path.Combine(b.Cfg.Root, Config.OldInboxName)));
         Assert.True(File.Exists(Path.Combine(b.Cfg.Inbox, "проба.cdr")));
@@ -64,6 +64,51 @@ public sealed class ПотеряДанных
             Assert.StartsWith(Config.InboxName + @"\", still!.RelPath);
             Assert.Single(b.Repo.TagsOf(c, id));
         }
+    }
+
+    /// <summary>
+    /// Так это и сломалось на живом хранилище. Один файл держал Corel, и он
+    /// уносил с собой перенос остальных семидесяти семи, потому что ошибка
+    /// ловилась снаружи цикла. Пути в базе при этом переписывались все разом,
+    /// и экран разбора показал ноль файлов из ста восьми, хотя на диске
+    /// лежали все.
+    /// </summary>
+    [Fact]
+    public void Занятый_файл_не_отменяет_перенос_остальных()
+    {
+        using var b = new Bench();
+        b.Drop("свободный.cdr");
+        var занятый = b.Drop("занятый.cdr");
+        b.Ingest.ScanInbox();
+        ОткатитьКСтаромуИмени(b);
+
+        var old = Path.Combine(b.Cfg.Root, Config.OldInboxName);
+
+        // Держим так же, как держит Corel: никому не давая читать.
+        using (File.Open(Path.Combine(old, "занятый.cdr"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            b.Cfg.RenameOldInbox();
+            InboxMove.Carry(b.Cfg, b.Repo);
+
+            Assert.True(File.Exists(Path.Combine(b.Cfg.Inbox, "свободный.cdr")));
+            Assert.True(File.Exists(Path.Combine(old, "занятый.cdr")));
+
+            // Оба по-прежнему ждут разбора, и путь каждого ведёт туда,
+            // где файл лежит на самом деле.
+            using var c = b.Repo.Open();
+            var приём = b.Repo.ListInbox(c).ToDictionary(f => f.OrigName, f => f.RelPath);
+            Assert.Equal(2, приём.Count);
+            Assert.Equal(Config.InboxName + @"\свободный.cdr", приём["свободный.cdr"]);
+            Assert.Equal(Config.OldInboxName + @"\занятый.cdr", приём["занятый.cdr"]);
+        }
+
+        // Файл отпустили: следующий запуск донесёт и его.
+        b.Cfg.RenameOldInbox();
+        InboxMove.Carry(b.Cfg, b.Repo);
+
+        Assert.False(Directory.Exists(old));
+        using (var c = b.Repo.Open())
+            Assert.All(b.Repo.ListInbox(c), f => Assert.StartsWith(Config.InboxName + @"\", f.RelPath));
     }
 
     /// <summary>

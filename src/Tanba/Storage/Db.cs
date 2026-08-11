@@ -163,24 +163,6 @@ public sealed class Db
                 cmd.ExecuteNonQuery();
             }
 
-        // Приём переехал под новое имя. Файлы в нём ищутся по началу пути,
-        // так что без этой правки они просто исчезли бы с экрана разбора,
-        // оставшись на диске. Папку двигает Config.RenameOldInbox, и она
-        // отрабатывает раньше: здесь мы только догоняем пути.
-        using (var moved = c.CreateCommand())
-        {
-            moved.CommandText = """
-                UPDATE files
-                SET rel_path = $new || substr(rel_path, length($old) + 1)
-                WHERE rel_path LIKE $like;
-                """;
-            moved.Parameters.AddWithValue("$new", Config.InboxName + '\\');
-            moved.Parameters.AddWithValue("$old", Config.OldInboxName + '\\');
-            moved.Parameters.AddWithValue("$like", Config.OldInboxName + @"\%");
-            var n = moved.ExecuteNonQuery();
-            if (n > 0) Console.WriteLine($"Приём переименован, путей поправлено: {n}");
-        }
-
         // Год больше не группа тегов: он отбирается диапазоном дат.
         // Сносим только если им никто не успел воспользоваться.
         using var drop = c.CreateCommand();

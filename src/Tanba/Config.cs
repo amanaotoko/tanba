@@ -60,52 +60,60 @@ public sealed class Config
     /// Переносит приём под новое имя. Звать до EnsureLayout: иначе рядом со
     /// старой папкой появится новая пустая, и человек увидит две.
     ///
-    /// Ничего не удаляет. Если новая папка почему-то уже есть, содержимое
-    /// перекладывается в неё по одному файлу, а старая уходит только пустой.
-    /// Пути в базе правит Db.Migrate, и именно в таком порядке: сначала диск,
-    /// потом база. Обратный порядок оставил бы базу указывающей в пустоту,
-    /// а этот всего лишь заставит ближайший обход подождать одного запуска.
+    /// Ничего не удаляет и ничего не затирает. Один занятый файл больше не
+    /// отменяет перенос остальных: каждый идёт своей попыткой. То, что не
+    /// поддалось, остаётся в старой папке до следующего запуска, а пути в
+    /// базе расставляет InboxMove.Carry по тому, где файл лежит на самом
+    /// деле, а не по тому, куда мы собирались его положить.
     /// </summary>
     public void RenameOldInbox()
     {
         var old = Path.Combine(Root, OldInboxName);
         if (!Directory.Exists(old) || string.Equals(OldInboxName, InboxName, StringComparison.Ordinal)) return;
 
-        try
+        // Целиком папкой это одно движение и не задевает открытые файлы:
+        // переименовывается запись каталога, а не его содержимое.
+        if (!Directory.Exists(Inbox))
         {
-            if (!Directory.Exists(Inbox))
+            try
             {
                 Directory.Move(old, Inbox);
                 Console.WriteLine($"Приём переименован: {OldInboxName} -> {InboxName}");
                 return;
             }
-
-            foreach (var path in Directory.EnumerateFileSystemEntries(old))
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                var to = Path.Combine(Inbox, Path.GetFileName(path));
-                if (File.Exists(to) || Directory.Exists(to)) continue;  // тёзка на месте, не трогаем
-                Directory.Move(path, to);
-            }
-
-            if (!Directory.EnumerateFileSystemEntries(old).Any())
-            {
-                Directory.Delete(old);
-                Console.WriteLine($"Приём перенесён в {InboxName}, старая папка убрана");
-            }
-            else
-            {
-                Console.WriteLine($"В «{OldInboxName}» осталось непереносимое, папка оставлена как есть");
+                // Папку кто-то держит открытой, обычно проводник. Дальше
+                // попробуем по одному файлу: это медленнее, но проходит там,
+                // где не проходит переименование целиком.
+                Console.Error.WriteLine($"Приём целиком переименовать не вышло: {ex.Message}");
+                Directory.CreateDirectory(Inbox);
             }
         }
-        catch (IOException ex)
+
+        int moved = 0, stuck = 0;
+        foreach (var path in Directory.EnumerateFileSystemEntries(old))
         {
-            // Файл держит Corel или проводник. Не беда: попробуем на следующем
-            // запуске, а до тех пор обе папки на месте и ничего не потеряно.
-            Console.Error.WriteLine($"Не смог переименовать приём: {ex.Message}");
+            var to = Path.Combine(Inbox, Path.GetFileName(path));
+            if (File.Exists(to) || Directory.Exists(to)) { stuck++; continue; }  // тёзка, не трогаем
+
+            try { Directory.Move(path, to); moved++; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Файл открыт в Corel. Остальные это не касается.
+                stuck++;
+                Console.Error.WriteLine($"Занят, оставляю на месте: {Path.GetFileName(path)}");
+            }
         }
-        catch (UnauthorizedAccessException ex)
+
+        if (stuck == 0 && !Directory.EnumerateFileSystemEntries(old).Any())
         {
-            Console.Error.WriteLine($"Не смог переименовать приём: {ex.Message}");
+            try { Directory.Delete(old); } catch (IOException) { }
+            Console.WriteLine($"Приём перенесён в {InboxName}: {moved}, старая папка убрана");
+        }
+        else
+        {
+            Console.WriteLine($"Приём перенесён частично: {moved}, осталось {stuck}. Попробую при следующем запуске");
         }
     }
 

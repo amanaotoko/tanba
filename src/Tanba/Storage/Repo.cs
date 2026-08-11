@@ -66,12 +66,17 @@ public sealed class Repo(Db db)
     /// <summary>Файлы, лежащие в папке приёма и ещё не разложенные.</summary>
     public List<FileRow> ListInbox(SqliteConnection c)
     {
+        // Старое имя папки тоже считается приёмом. Переезд может застрять на
+        // файле, который держит Corel, и пока он лежит под прежним именем,
+        // он всё равно ждёт разбора наравне с остальными, см. InboxMove.
         using var cmd = c.Sql("""
             SELECT id, rel_path, orig_name, ext, size, sha256, added_at, file_mtime
             FROM files
-            WHERE is_missing = 0 AND rel_path LIKE $pfx
+            WHERE is_missing = 0 AND (rel_path LIKE $pfx OR rel_path LIKE $old)
             ORDER BY added_at, id
-            """, ("$pfx", Config.InboxName + @"\%"));
+            """,
+            ("$pfx", Config.InboxName + @"\%"),
+            ("$old", Config.OldInboxName + @"\%"));
         return ReadFiles(cmd);
     }
 

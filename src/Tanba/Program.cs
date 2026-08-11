@@ -75,6 +75,11 @@ if (db.EnsureSchema()) Console.WriteLine($"База создана: {cfg.DbPath}
 db.Migrate();
 
 var repo = new Repo(db);
+
+// Пути приёма ставим по факту: часть файлов могла остаться под старым именем
+// папки, если их держали открытыми. Строго до наблюдателя и обхода.
+InboxMove.Carry(cfg, repo);
+
 var prefs = new Prefs(repo);
 var updater = new Updater(prefs);
 var thumbs = new Thumbs(cfg);
