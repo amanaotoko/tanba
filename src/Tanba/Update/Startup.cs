@@ -33,7 +33,7 @@ public static class Startup
     /// момент. Переходник лежит снаружи подмены и перекладывается заново после
     /// каждого обновления, то есть чинит себя сам.
     /// </summary>
-    public static string TargetExe()
+    private static string? Stub()
     {
         try
         {
@@ -57,8 +57,10 @@ public static class Startup
         }
         catch (Exception) { /* не установлено, значит обычный exe */ }
 
-        return Environment.ProcessPath ?? "";
+        return null;
     }
+
+    public static string TargetExe() => Stub() ?? Environment.ProcessPath ?? "";
 
     /// <summary>Строка команды целиком. В трей, а не окном: см. Program.cs.</summary>
     private static string Command() => $"\"{TargetExe()}\" {Args.Tray}";
@@ -136,6 +138,11 @@ public static class Startup
     /// </summary>
     public static void Refresh()
     {
+        // Только из установленной копии. Отладочная сборка, запущенная из bin,
+        // иначе переписывала автозапуск на себя, и Windows при входе поднимала
+        // папку сборки вместо программы. Заметить это можно было не сразу:
+        // запись выглядит правильной, просто ведёт не туда.
+        if (Stub() is null) return;
         if (!IsOn()) return;
         try
         {

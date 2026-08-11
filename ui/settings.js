@@ -125,9 +125,11 @@ $('apply').onclick = async () => {
 // сервер отвечает, обновление либо качается, либо не задалось, и разницу
 // показывает поле ошибки.
 function watchInstall() {
+  let misses = 0;
   const timer = setInterval(async () => {
     try {
       const next = await send('GET', '/api/settings');
+      misses = 0;
       if (next.update.error) {
         clearInterval(timer);
         installing = false;
@@ -135,6 +137,10 @@ function watchInstall() {
         render();
       }
     } catch (e) {
+      // Один неответ ничего не доказывает: страницу мог усыпить WebView2,
+      // а сервер мог не успеть ответить за полтора секунды на середине
+      // распаковки. Считаем ушедшим после трёх подряд.
+      if (++misses < 3) return;
       clearInterval(timer);
       waitForNewVersion();
     }

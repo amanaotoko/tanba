@@ -180,6 +180,10 @@ public sealed class Updater(Prefs prefs)
             "Доступ закрыт. Проверь токен",
         HttpRequestException => "Не удалось связаться с источником обновлений",
         DirectoryNotFoundException => "Папка с обновлениями недоступна",
-        _ => ex.Message,
+        // Про пустой репозиторий Velopack сообщает обычным исключением
+        // с английским текстом, и он выходил в русское окно как есть.
+        _ when ex.Message.StartsWith("No releases found") =>
+            "В репозитории ещё нет ни одного релиза",
+        _ => "Проверка не удалась: " + ex.Message,
     };
 }
