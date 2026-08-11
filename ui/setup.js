@@ -186,7 +186,7 @@ async function tick() {
 
   if (p.phase === 'done') {
     clearInterval(poll);
-    $('doneWhere').textContent = look.path.replace(/\\?$/, '\\') + 'СОХРАНИ СЮДА';
+    $('doneWhere').textContent = look.path.replace(/\\?$/, '\\') + 'Inbox';
     show(4);
   }
 }

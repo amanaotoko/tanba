@@ -16,7 +16,7 @@ ever moved in order to be classified.
 
 ## How the work goes
 
-**Save anything into `СОХРАНИ СЮДА`.** That is the only decision you make while
+**Save anything into `Inbox`.** That is the only decision you make while
 working: no subfolders, no naming rules, no thinking about where this belongs.
 The folder sits at the root of the storage drive and is the only one you ever
 open by hand.
@@ -88,7 +88,7 @@ storage drive is untouched by updates.
 ## What lands on the disk
 
 ```
-СОХРАНИ СЮДА    the only folder you open yourself
+Inbox           the only folder you open yourself
 _store          the files, filed by year and month
 _versions       previous states of edited files
 _thumbs         cached previews

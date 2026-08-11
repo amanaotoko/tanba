@@ -6,7 +6,14 @@ namespace Tanba;
 /// </summary>
 public sealed class Config
 {
-    public const string InboxName = "СОХРАНИ СЮДА";
+    public const string InboxName = "Inbox";
+
+    /// <summary>
+    /// Как эта папка называлась раньше. Имя кричало капсом, чтобы его нашли
+    /// среди прочих, но прочие скрыты, и в диалоге сохранения она всё равно
+    /// одна. Держим только ради переноса, см. RenameOldInbox.
+    /// </summary>
+    public const string OldInboxName = "СОХРАНИ СЮДА";
 
     public string Root { get; }
 
@@ -47,6 +54,59 @@ public sealed class Config
         var root = Environment.GetEnvironmentVariable("TANBA_ROOT");
         if (string.IsNullOrWhiteSpace(root)) root = RootStore.Read();
         return string.IsNullOrWhiteSpace(root) ? null : new Config(root);
+    }
+
+    /// <summary>
+    /// Переносит приём под новое имя. Звать до EnsureLayout: иначе рядом со
+    /// старой папкой появится новая пустая, и человек увидит две.
+    ///
+    /// Ничего не удаляет. Если новая папка почему-то уже есть, содержимое
+    /// перекладывается в неё по одному файлу, а старая уходит только пустой.
+    /// Пути в базе правит Db.Migrate, и именно в таком порядке: сначала диск,
+    /// потом база. Обратный порядок оставил бы базу указывающей в пустоту,
+    /// а этот всего лишь заставит ближайший обход подождать одного запуска.
+    /// </summary>
+    public void RenameOldInbox()
+    {
+        var old = Path.Combine(Root, OldInboxName);
+        if (!Directory.Exists(old) || string.Equals(OldInboxName, InboxName, StringComparison.Ordinal)) return;
+
+        try
+        {
+            if (!Directory.Exists(Inbox))
+            {
+                Directory.Move(old, Inbox);
+                Console.WriteLine($"Приём переименован: {OldInboxName} -> {InboxName}");
+                return;
+            }
+
+            foreach (var path in Directory.EnumerateFileSystemEntries(old))
+            {
+                var to = Path.Combine(Inbox, Path.GetFileName(path));
+                if (File.Exists(to) || Directory.Exists(to)) continue;  // тёзка на месте, не трогаем
+                Directory.Move(path, to);
+            }
+
+            if (!Directory.EnumerateFileSystemEntries(old).Any())
+            {
+                Directory.Delete(old);
+                Console.WriteLine($"Приём перенесён в {InboxName}, старая папка убрана");
+            }
+            else
+            {
+                Console.WriteLine($"В «{OldInboxName}» осталось непереносимое, папка оставлена как есть");
+            }
+        }
+        catch (IOException ex)
+        {
+            // Файл держит Corel или проводник. Не беда: попробуем на следующем
+            // запуске, а до тех пор обе папки на месте и ничего не потеряно.
+            Console.Error.WriteLine($"Не смог переименовать приём: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.Error.WriteLine($"Не смог переименовать приём: {ex.Message}");
+        }
     }
 
     /// <summary>Создаёт структуру папок. Идемпотентно, можно звать каждый запуск.</summary>

@@ -66,6 +66,8 @@ if (cfg is null)
     Console.WriteLine($"Выбрано хранилище: {cfg.Root}");
 }
 
+// Строго до EnsureLayout, иначе рядом со старым приёмом встанет новый пустой.
+cfg.RenameOldInbox();
 cfg.EnsureLayout();
 
 var db = new Db(cfg.DbPath);

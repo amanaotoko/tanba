@@ -57,7 +57,7 @@ public sealed partial class Tray : IDisposable
         {
             _lastNotified = bucket;
             _icon.ShowBalloonTip(4000, "Tanba",
-                $"В «СОХРАНИ СЮДА» накопилось {pending}. Разберёшь одной пачкой.",
+                $"В «{Config.InboxName}» накопилось {pending}. Разберёшь одной пачкой.",
                 ToolTipIcon.None);
         }
         if (pending == 0) _lastNotified = -1;

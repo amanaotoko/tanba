@@ -5,7 +5,7 @@ using Tanba.Storage;
 namespace Tanba.Scanner;
 
 /// <summary>
-/// Приём файлов: обход папки «СОХРАНИ СЮДА» и операция «Разложить».
+/// Приём файлов: обход папки «Inbox» и операция «Разложить».
 /// Единственное место, которое двигает файлы по диску.
 /// </summary>
 public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = null)

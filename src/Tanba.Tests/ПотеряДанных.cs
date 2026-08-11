@@ -3,13 +3,99 @@ using Tanba.Storage;
 namespace Tanba.Tests;
 
 /// <summary>
-/// Четыре случая, в которых программа теряла или уносила чужие файлы.
-/// Все четыре нашла ревизия кода, все четыре здесь воспроизводятся.
+/// Случаи, в которых программа теряла или уносила чужие файлы.
+/// Почти все нашла ревизия кода, и все здесь воспроизводятся.
 /// Тесты написаны после починки, поэтому их ценность не в том, что они
 /// зелёные сегодня, а в том, что они покраснеют, если починку отменят.
 /// </summary>
 public sealed class ПотеряДанных
 {
+    /// <summary>
+    /// Возвращает хранилище к тому виду, какой был до переименования приёма:
+    /// папка со старым именем и пути в базе, ведущие в неё.
+    /// </summary>
+    private static void ОткатитьКСтаромуИмени(Bench b)
+    {
+        var old = Path.Combine(b.Cfg.Root, Config.OldInboxName);
+        if (Directory.Exists(b.Cfg.Inbox)) Directory.Move(b.Cfg.Inbox, old);
+
+        using var c = b.Repo.Open();
+        using var cmd = c.Sql("""
+            UPDATE files
+            SET rel_path = $old || substr(rel_path, length($new) + 1)
+            WHERE rel_path LIKE $like
+            """,
+            ("$old", Config.OldInboxName + '\\'),
+            ("$new", Config.InboxName + '\\'),
+            ("$like", Config.InboxName + @"\%"));
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// Переименование приёма могло оставить файлы на диске, но выкинуть их
+    /// с экрана: приём ищется по началу пути, и правка одной константы без
+    /// правки базы означала бы «файлов нет», хотя они лежат на месте.
+    /// </summary>
+    [Fact]
+    public void Переименование_приёма_не_теряет_ни_файл_ни_теги()
+    {
+        using var b = new Bench();
+        b.Drop("проба.cdr");
+        b.Ingest.ScanInbox();
+
+        long id;
+        using (var c = b.Repo.Open())
+        {
+            id = b.Repo.ListInbox(c)[0].Id;
+            b.Repo.ApplyTag(c, [id], b.SomeTag(), true);
+        }
+
+        ОткатитьКСтаромуИмени(b);
+        b.Cfg.RenameOldInbox();
+        b.Db.Migrate();
+
+        Assert.False(Directory.Exists(Path.Combine(b.Cfg.Root, Config.OldInboxName)));
+        Assert.True(File.Exists(Path.Combine(b.Cfg.Inbox, "проба.cdr")));
+
+        using (var c = b.Repo.Open())
+        {
+            var still = b.Repo.ListInbox(c).SingleOrDefault(f => f.Id == id);
+            Assert.NotNull(still);
+            Assert.StartsWith(Config.InboxName + @"\", still!.RelPath);
+            Assert.Single(b.Repo.TagsOf(c, id));
+        }
+    }
+
+    /// <summary>
+    /// Опасная ветка того же переноса: обе папки существуют разом. Так будет
+    /// у того, кто запустит новую версию, когда новую папку уже успели
+    /// создать. Переносить надо по одному файлу и ничего не затирать.
+    /// </summary>
+    [Fact]
+    public void Переименование_приёма_сливает_две_папки_и_не_затирает_тёзок()
+    {
+        using var b = new Bench();
+        b.Drop("старый.cdr", "из старой папки");
+        b.Drop("тёзка.cdr", "старая копия");
+        ОткатитьКСтаромуИмени(b);
+
+        // Новая папка уже появилась, и в ней лежит файл с тем же именем.
+        Directory.CreateDirectory(b.Cfg.Inbox);
+        File.WriteAllText(Path.Combine(b.Cfg.Inbox, "новый.cdr"), "из новой папки");
+        File.WriteAllText(Path.Combine(b.Cfg.Inbox, "тёзка.cdr"), "новая копия");
+
+        b.Cfg.RenameOldInbox();
+
+        Assert.Equal("из старой папки", File.ReadAllText(Path.Combine(b.Cfg.Inbox, "старый.cdr")));
+        Assert.Equal("из новой папки", File.ReadAllText(Path.Combine(b.Cfg.Inbox, "новый.cdr")));
+
+        // Тёзку не тронули, и старая копия никуда не делась: она осталась
+        // в старой папке, а папка осталась на диске. Потерять нечего.
+        Assert.Equal("новая копия", File.ReadAllText(Path.Combine(b.Cfg.Inbox, "тёзка.cdr")));
+        Assert.Equal("старая копия",
+            File.ReadAllText(Path.Combine(b.Cfg.Root, Config.OldInboxName, "тёзка.cdr")));
+    }
+
     /// <summary>
     /// Файл, открытый в другой программе, терял строку вместе со всеми тегами.
     /// Сканер не мог его прочитать, пропускал, а «не увидел» шло тем же путём,
@@ -79,7 +165,7 @@ public sealed class ПотеряДанных
 
     /// <summary>
     /// Потерянная база уносила весь архив в приём. Пустая таблица означала
-    /// «все файлы чужие», и обход перекладывал их в «СОХРАНИ СЮДА», срезая
+    /// «все файлы чужие», и обход перекладывал их в приём, срезая
     /// номера и ломая раскладку по годам. Без вопроса, в фоне, при запуске.
     /// </summary>
     [Fact]

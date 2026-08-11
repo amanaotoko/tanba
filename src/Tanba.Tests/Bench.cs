@@ -12,6 +12,7 @@ namespace Tanba.Tests;
 public sealed class Bench : IDisposable
 {
     public Config Cfg { get; }
+    public Db Db { get; }
     public Repo Repo { get; }
     public Ingest Ingest { get; }
     public StoreScan Store { get; }
@@ -25,6 +26,7 @@ public sealed class Bench : IDisposable
         var db = new Db(Cfg.DbPath);
         db.EnsureSchema();
         db.Migrate();
+        Db = db;
 
         Repo = new Repo(db);
         Ingest = new Ingest(Cfg, Repo);
