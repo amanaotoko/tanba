@@ -109,6 +109,28 @@ public static class Startup
     }
 
     /// <summary>
+    /// Убирает за собой при удалении программы.
+    ///
+    /// Запись автозапуска пишем мы сами, и Velopack про неё не знает: он умеет
+    /// снимать ярлыки, а ключ Run в его исходниках не упоминается вовсе.
+    /// Без этого после удаления в «Автозагрузке» навсегда остаётся строка
+    /// «Tanba», ведущая на стёртый файл. Заодно снимаем и пометку Windows
+    /// о выключении, иначе она переживает саму программу.
+    /// </summary>
+    public static void Forget()
+    {
+        try
+        {
+            using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            run?.DeleteValue(Name, throwOnMissingValue: false);
+
+            using var approved = Registry.CurrentUser.OpenSubKey(ApprovedKey, writable: true);
+            approved?.DeleteValue(Name, throwOnMissingValue: false);
+        }
+        catch (Exception) { /* удаление уже идёт, мешать ему нечем */ }
+    }
+
+    /// <summary>
     /// Поправляет записанный путь, если он разъехался с настоящим.
     /// Зовётся после обновления: на случай, если раскладка установки изменится.
     /// </summary>
