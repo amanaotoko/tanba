@@ -77,6 +77,14 @@ input{font:inherit;color:inherit}
   background:var(--strip);user-select:none;
   app-region:drag;-webkit-app-region:drag}
 
+/* Знак программы слева, перед вкладками. Заливкой, а не обводкой, поэтому
+   мимо общего .ic. Цвет ведём за текстом: на тёмной теме он белый, на
+   светлой чёрный, и отдельного рисунка на каждую тему не нужно.
+   Выровнен по низу вместе с вкладками и приподнят над ними на два пикселя,
+   чтобы не сидеть на самой линии среза. */
+.brand{width:19px;height:19px;flex:none;fill:var(--t1);stroke:none;
+  margin:0 10px 6px 8px}
+
 .tabs{display:flex;align-items:flex-end;gap:2px;min-width:0;
   app-region:no-drag;-webkit-app-region:no-drag}
 

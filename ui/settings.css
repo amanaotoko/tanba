@@ -15,6 +15,10 @@
 .row{display:flex;align-items:center;gap:16px;padding:12px 0}
 .row + .row{border-top:1px solid var(--bd)}
 .row.col{flex-direction:column;align-items:stretch;gap:8px}
+/* Знак рядом с версией. Свои поля вместо тех, что заданы ему в шапке:
+   строка уже держит свой просвет через gap. */
+.brand-big{width:28px;height:28px;margin:0}
+
 .rt{flex:1;min-width:0}
 .rh{font-size:14px;line-height:20px;color:var(--t1)}
 .rd{margin:2px 0 0;font-size:12px;line-height:17px;color:var(--t3)}
