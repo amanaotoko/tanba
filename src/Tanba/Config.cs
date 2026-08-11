@@ -94,8 +94,8 @@ public sealed class Config
         int moved = 0, stuck = 0;
         foreach (var path in Directory.EnumerateFileSystemEntries(old))
         {
-            var to = Path.Combine(Inbox, Path.GetFileName(path));
-            if (File.Exists(to) || Directory.Exists(to)) { stuck++; continue; }  // тёзка, не трогаем
+            var to = FreeName(Path.Combine(Inbox, Path.GetFileName(path)));
+            if (to is null) { stuck++; continue; }
 
             try { Directory.Move(path, to); moved++; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -115,6 +115,33 @@ public sealed class Config
         {
             Console.WriteLine($"Приём перенесён частично: {moved}, осталось {stuck}. Попробую при следующем запуске");
         }
+    }
+
+    /// <summary>
+    /// Свободное имя рядом с занятым: «имя (2).cdr», как делает проводник.
+    /// Возвращает null для папки, чей тёзка уже есть: сливать две папки это
+    /// уже не переезд, а решение за человека.
+    ///
+    /// Нужно ровно для одного случая, и он оказался настоящим: Corel пишет
+    /// резервные копии под одним именем, и в обеих папках их оказалось по
+    /// одной, с разным содержимым. Затирать нельзя, бросать тоже: брошенная
+    /// осталась бы на диске навсегда, а вместе с ней и старая папка.
+    /// </summary>
+    private static string? FreeName(string path)
+    {
+        if (!File.Exists(path) && !Directory.Exists(path)) return path;
+        if (Directory.Exists(path)) return null;
+
+        var dir = Path.GetDirectoryName(path)!;
+        var name = Path.GetFileNameWithoutExtension(path);
+        var ext = Path.GetExtension(path);
+
+        for (var n = 2; n <= 99; n++)
+        {
+            var next = Path.Combine(dir, $"{name} ({n}){ext}");
+            if (!File.Exists(next) && !Directory.Exists(next)) return next;
+        }
+        return null;
     }
 
     /// <summary>Создаёт структуру папок. Идемпотентно, можно звать каждый запуск.</summary>
