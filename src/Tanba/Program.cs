@@ -71,7 +71,8 @@ cfg.RenameOldInbox();
 cfg.EnsureLayout();
 
 var db = new Db(cfg.DbPath);
-if (db.EnsureSchema()) Console.WriteLine($"База создана: {cfg.DbPath}");
+var freshDb = db.EnsureSchema();
+if (freshDb) Console.WriteLine($"База создана: {cfg.DbPath}");
 db.Migrate();
 
 var repo = new Repo(db);
@@ -81,6 +82,11 @@ var repo = new Repo(db);
 InboxMove.Carry(cfg, repo);
 
 var prefs = new Prefs(repo);
+
+// Пустая база без единого тега бесполезна: вешать нечего. Заводим один
+// маленький набор, и только здесь, при самом создании базы.
+if (freshDb) Seed.Starter(repo, Lang.Pick(prefs.Get(Prefs.Lang)));
+
 var updater = new Updater(prefs);
 var thumbs = new Thumbs(cfg);
 var ingest = new Ingest(cfg, repo, thumbs);

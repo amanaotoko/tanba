@@ -24,11 +24,14 @@ public sealed class Bench : IDisposable
         Cfg.EnsureLayout();
 
         var db = new Db(Cfg.DbPath);
-        db.EnsureSchema();
+        var fresh = db.EnsureSchema();
         db.Migrate();
         Db = db;
 
         Repo = new Repo(db);
+        // Стартовые теги больше не приходят из schema.sql, их заводит Seed.
+        // Тестам нужен хотя бы один, см. SomeTag.
+        if (fresh) Seed.Starter(Repo, Tanba.Lang.Ru);
         Ingest = new Ingest(Cfg, Repo);
         Store = new StoreScan(Cfg, Repo);
     }

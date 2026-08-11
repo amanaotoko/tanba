@@ -56,6 +56,9 @@ public static class Setup
             // и открываемся сразу на выборе места, человек уже знает программу.
             waiting = current is not null && !Directory.Exists(current),
             version = Updater.Version,
+            // Чем открыться. Настроек ещё нет, спросить некого, поэтому берём
+            // язык Windows: на русской системе мастер сразу русский.
+            lang = Lang.OfWindows(),
             autostart = Startup.IsOn(),
             shortcut = File.Exists(DesktopLink),
             found = RootStore.Suggest().Select(p => new
@@ -76,7 +79,7 @@ public static class Setup
             _adopted = look.Kind == RootStore.Kind.Tanba;
             _phase = "dirs";
             _failed = "";
-            _ = Task.Run(() => Prepare(look.Path, c.Shortcut, c.Autostart));
+            _ = Task.Run(() => Prepare(look.Path, c.Shortcut, c.Autostart, Lang.Pick(c.Lang)));
             return Results.Ok(new { ok = true, adopted = _adopted });
         });
 
@@ -134,20 +137,29 @@ public static class Setup
     /// Превью здесь нет намеренно: их рисует Windows по требованию, когда
     /// плитка попадает на экран, и показывать несуществующий шаг нельзя.
     /// </summary>
-    private static void Prepare(string root, bool shortcut, bool autostart)
+    private static void Prepare(string root, bool shortcut, bool autostart, string lang)
     {
         try
         {
             var cfg = new Config(root);
+            cfg.RenameOldInbox();
             cfg.EnsureLayout();
 
             _phase = "db";
             var db = new Db(cfg.DbPath);
-            db.EnsureSchema();
+            var fresh = db.EnsureSchema();
             db.Migrate();
 
             _phase = "scan";
             var repo = new Repo(db);
+            InboxMove.Carry(cfg, repo);
+
+            // Язык, выбранный на первом шаге, с этой минуты живёт в настройках.
+            // Новой базе он же задаёт язык стартовых тегов, и только ей: теги
+            // это данные, и переключение интерфейса их потом не трогает.
+            new Prefs(repo).Set(Prefs.Lang, lang);
+            if (fresh) Seed.Starter(repo, lang);
+
             var thumbs = new Thumbs(cfg);
             var ingest = new Ingest(cfg, repo, thumbs);
 
@@ -248,7 +260,7 @@ public static class Setup
     };
 
     public sealed record PathCmd(string Path);
-    public sealed record PrepareCmd(string Path, bool Shortcut, bool Autostart);
+    public sealed record PrepareCmd(string Path, bool Shortcut, bool Autostart, string? Lang);
 }
 
 /// <summary>

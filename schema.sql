@@ -288,31 +288,9 @@ HAVING COUNT(*) > 1;
 
 -- ЗАГОТОВКА ГРУПП И ТЕГОВ ------------------------------------------------
 
--- Года среди групп нет намеренно: дата непрерывна и уже лежит в files.
+-- Здесь её нет намеренно. Раньше стояли рабочие теги одного человека, и они
+-- уезжали всем, кто ставил программу. Стартовый набор теперь заводит
+-- Seed.Starter, на языке, выбранном при установке.
+
+-- Года среди групп нет тоже намеренно: дата непрерывна и уже лежит в files.
 -- В библиотеке она отбирается диапазоном «с … до», а не тегом.
-INSERT INTO tag_groups (name, is_multi, is_required, sort_order) VALUES
-  ('Организация', 1, 1, 1),
-  ('Тип',         1, 1, 2),
-  ('Кампания',    1, 0, 3),
-  ('Человек',     1, 0, 4),
-  ('Статус',      0, 0, 5);
-
-INSERT INTO tags (group_id, name) SELECT id, 'Digital College' FROM tag_groups WHERE name='Организация';
-INSERT INTO tags (group_id, name) SELECT id, 'Elevate'         FROM tag_groups WHERE name='Организация';
-INSERT INTO tags (group_id, name) SELECT id, 'IT School'       FROM tag_groups WHERE name='Организация';
-INSERT INTO tags (group_id, name) SELECT id, 'QAZIITU'         FROM tag_groups WHERE name='Организация';
-INSERT INTO tags (group_id, name) SELECT id, 'RVTK'            FROM tag_groups WHERE name='Организация';
-
-INSERT INTO tags (group_id, name) SELECT id, 'Баннер'      FROM tag_groups WHERE name='Тип';
-INSERT INTO tags (group_id, name) SELECT id, 'Видео'       FROM tag_groups WHERE name='Тип';
-INSERT INTO tags (group_id, name) SELECT id, 'Заставка'    FROM tag_groups WHERE name='Тип';
-INSERT INTO tags (group_id, name) SELECT id, 'Презентация' FROM tag_groups WHERE name='Тип';
-
-INSERT INTO tags (group_id, name) SELECT id, 'Профориентация' FROM tag_groups WHERE name='Кампания';
-INSERT INTO tags (group_id, name) SELECT id, 'Магистратура'   FROM tag_groups WHERE name='Кампания';
-
-INSERT INTO tags (group_id, name) SELECT id, 'Аида М' FROM tag_groups WHERE name='Человек';
-
-INSERT INTO tags (group_id, name) SELECT id, 'Черновик'     FROM tag_groups WHERE name='Статус';
-INSERT INTO tags (group_id, name) SELECT id, 'Утверждено'   FROM tag_groups WHERE name='Статус';
-INSERT INTO tags (group_id, name) SELECT id, 'Опубликовано' FROM tag_groups WHERE name='Статус';

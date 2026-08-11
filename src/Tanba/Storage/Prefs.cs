@@ -12,7 +12,10 @@ public sealed class Prefs(Repo repo)
 {
     // Адрес репозитория и ключ доступа сюда не попадают: они вшиты в сборку,
     // см. Tanba.csproj. Так человеку нечего вписывать, а ключ не лежит на диске.
-    public const string UpdateSeen   = "update.checked_at";
+    public const string UpdateSeen = "update.checked_at";
+
+    /// Язык интерфейса, ru или en. Пусто значит «как в Windows», см. Lang.
+    public const string Lang = "ui.lang";
 
     public string? Get(string key)
     {
