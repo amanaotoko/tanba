@@ -142,33 +142,26 @@ public sealed class Updater(Prefs prefs)
         }
     }
 
+    /// <summary>
+    /// Источник один: репозиторий, вшитый при сборке. Выбор между ним и
+    /// папкой в локальной сети из настроек убран, потому что выбирать было
+    /// не из чего: папку никто не заполнял, а лишний переключатель на экране
+    /// заставляет думать о том, о чём думать не надо.
+    /// </summary>
     private IUpdateSource? BuildSource()
     {
-        if (prefs.Get(Prefs.UpdateSource, "github") == "folder")
-        {
-            var dir = prefs.Get(Prefs.UpdateFolder);
-            return string.IsNullOrWhiteSpace(dir) ? null : new SimpleFileSource(new DirectoryInfo(dir));
-        }
-
         var repo = BuiltRepo;
         if (string.IsNullOrWhiteSpace(repo)) return null;
 
         // Ключ нужен только приватному репозиторию. Публичный читается без него,
         // и тогда в программе не лежит вообще никакого секрета.
-        return new GithubSource(repo, BuiltToken, prefs.Flag(Prefs.UpdatePre));
+        return new GithubSource(repo, BuiltToken, prerelease: false);
     }
 
-    private (string Text, bool Configured) Describe()
-    {
-        if (prefs.Get(Prefs.UpdateSource, "github") == "folder")
-        {
-            var dir = prefs.Get(Prefs.UpdateFolder);
-            return string.IsNullOrWhiteSpace(dir) ? ("папка не указана", false) : (dir, true);
-        }
-        return string.IsNullOrWhiteSpace(BuiltRepo)
+    private (string Text, bool Configured) Describe() =>
+        string.IsNullOrWhiteSpace(BuiltRepo)
             ? ("репозиторий не задан при сборке", false)
             : (BuiltRepo!, true);
-    }
 
     /// <summary>Ошибки сети и доступа человеку надо объяснить, а не показывать стек.</summary>
     private static string Explain(Exception ex) => ex switch

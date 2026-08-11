@@ -34,14 +34,6 @@ public static class SettingsApi
             return Results.Ok(new { started = true });
         });
 
-        app.MapPost("/api/update/source", (SourcePatch p) =>
-        {
-            if (p.Source is "github" or "folder") prefs.Set(Prefs.UpdateSource, p.Source);
-            if (p.Folder is not null) prefs.Set(Prefs.UpdateFolder, p.Folder.Trim());
-            if (p.Prerelease is { } pre) prefs.Set(Prefs.UpdatePre, pre);
-            return Results.Ok(Snapshot(cfg, prefs, updater, pending, scanning));
-        });
-
         // ── Автозапуск ───────────────────────────────────────────────────
         // Отвечаем тем, что получилось на самом деле: запись мог не дать
         // сделать администратор, и молча показывать «включено» нельзя.
@@ -76,10 +68,7 @@ public static class SettingsApi
             update = new
             {
                 installed = u.Installed,
-                source = prefs.Get(Prefs.UpdateSource, "github"),
                 repo = Updater.BuiltRepo ?? "",
-                folder = prefs.Get(Prefs.UpdateFolder) ?? "",
-                prerelease = prefs.Flag(Prefs.UpdatePre),
                 where = u.Source,
                 configured = u.Configured,
                 available = u.Available,
@@ -91,6 +80,5 @@ public static class SettingsApi
         };
     }
 
-    private sealed record SourcePatch(string? Source, string? Folder, bool? Prerelease);
     private sealed record StartupPatch(bool On);
 }

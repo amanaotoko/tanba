@@ -74,14 +74,8 @@ function render() {
     st.textContent = 'Ещё не проверяли';
   }
 
-  // Источник
-  for (const b of $('src').children) b.classList.toggle('on', b.dataset.src === u.source);
-  $('rowRepo').hidden = u.source !== 'github';
-  $('rowFolder').hidden = u.source !== 'folder';
-
   // Адрес и ключ доступа вшиты при сборке, поэтому здесь их только показываем.
   $('repo').textContent = u.repo || 'репозиторий не задан при сборке';
-  if (document.activeElement !== $('folder')) $('folder').value = u.folder;
 
   // Запуск
   $('startup').classList.toggle('on', s.startup);
@@ -180,21 +174,6 @@ function say(head, note) {
   box.append(h, p);
   document.body.replaceChildren(box);
 }
-
-// ── Источник ────────────────────────────────────────────────────────────
-
-for (const b of $('src').children) {
-  b.onclick = async () => { s = await send('POST', '/api/update/source', { source: b.dataset.src }); render(); };
-}
-
-const folder = $('folder');
-folder.onblur = async () => {
-  if (folder.value.trim() === s.update.folder) return;
-  s = await send('POST', '/api/update/source', { folder: folder.value.trim() });
-  render();
-  toast('Сохранено');
-};
-folder.onkeydown = e => { if (e.key === 'Enter') folder.blur(); };
 
 // ── Запуск вместе с Windows ─────────────────────────────────────────────
 

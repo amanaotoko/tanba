@@ -49,23 +49,10 @@
         </button>
       </div>
 
-      <div class="row">
-        <div class="rt">
-          <div class="rh">Откуда брать</div>
-          <div class="rd">Гитхаб забирает то, что выложено релизом. Папка годится для локальной сети.</div>
-        </div>
-        <div class="seg" id="src">
-          <button data-src="github">Гитхаб</button>
-          <button data-src="folder">Папка</button>
-        </div>
-      </div>
-
-      <div class="row col" id="rowRepo">
+      <!-- Откуда берутся обновления, выбирать больше не из чего: адрес вшит
+           при сборке, и здесь он только показан. -->
+      <div class="row col">
         <p class="rd mono" id="repo"></p>
-      </div>
-
-      <div class="row col" id="rowFolder" hidden>
-        <input class="fld" id="folder" spellcheck="false" placeholder="\\сервер\общая\tanba">
       </div>
     </section>
 

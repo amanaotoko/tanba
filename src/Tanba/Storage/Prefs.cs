@@ -12,9 +12,6 @@ public sealed class Prefs(Repo repo)
 {
     // Адрес репозитория и ключ доступа сюда не попадают: они вшиты в сборку,
     // см. Tanba.csproj. Так человеку нечего вписывать, а ключ не лежит на диске.
-    public const string UpdateSource = "update.source";   // github | folder
-    public const string UpdateFolder = "update.folder";
-    public const string UpdatePre    = "update.prerelease";
     public const string UpdateSeen   = "update.checked_at";
 
     public string? Get(string key)
