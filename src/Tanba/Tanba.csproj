@@ -15,7 +15,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Хост окна: WinForms несёт WebView2 и System.Drawing для эскизов -->
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon></ApplicationIcon>
+    <!-- Значок вшивается в exe: его показывает проводник, панель задач
+         и ярлыки. Окно берёт его же из себя, см. MainWindow, чтобы значок
+         жил в одном месте, а не в двух. -->
+    <ApplicationIcon>..\..\assets\tanba.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

@@ -36,8 +36,11 @@ dotnet publish (Join-Path $root 'src\Tanba\Tanba.csproj') `
 if ($LASTEXITCODE -ne 0) { throw 'Сборка не удалась' }
 
 Write-Host 'Упаковываю' -ForegroundColor Cyan
+# Значок нужен и здесь: в exe он вшит сборкой, но установщику и ярлыкам,
+# которые Velopack создаёт сам, взять его больше неоткуда.
 vpk pack -u Tanba -v $Version -p $publish -e Tanba.exe -o $releases `
-    --packTitle 'Tanba' --packAuthors 'Amanbek Shaimardan'
+    --packTitle 'Tanba' --packAuthors 'Amanbek Shaimardan' `
+    --icon (Join-Path $root 'assets\tanba.ico')
 if ($LASTEXITCODE -ne 0) { throw 'Упаковка не удалась' }
 
 Write-Host ''

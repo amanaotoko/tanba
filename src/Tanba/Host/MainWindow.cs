@@ -49,6 +49,13 @@ public sealed partial class MainWindow : Form
         Text = "Tanba";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(880, 560);
+
+        // Значок берём из самого exe, а не отдельным файлом рядом: он туда
+        // уже вшит через ApplicationIcon, и второй источник рано или поздно
+        // разошёлся бы с первым. Шапку окна мы рисуем сами и значка там нет,
+        // но кнопка на панели задач и переключение по Alt+Tab берут его отсюда.
+        try { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!); }
+        catch (Exception e) { Console.Error.WriteLine($"Значок окна не прочитался: {e.Message}"); }
         BackColor = ColorTranslator.FromHtml(BackHex);
 
         // 1440×900, но не больше экрана: на ноутбуке окно иначе вылезает за края.
