@@ -120,7 +120,29 @@ const I18N = (function () {
     return lang;
   }
 
-  return { t, plural, num, time, date, collator, byName, apply, set, locale, get lang() { return lang; } };
+  /// <summary>
+  /// Сверяется с настоящим значением из настроек. Страница уже нарисована по
+  /// быстрой копии, поэтому здесь либо ничего не происходит, либо язык тихо
+  /// меняется на верный.
+  ///
+  /// Нужно ровно для одного случая, и он неизбежен: язык выбирают в мастере
+  /// первого запуска, а у того своё окно и свой профиль WebView2, то есть
+  /// свой localStorage. Без этой сверки главное окно открылось бы на языке
+  /// Windows, а не на выбранном.
+  /// </summary>
+  async function sync(after) {
+    try {
+      const r = await fetch('/api/lang');
+      if (!r.ok) return;
+      const { lang: real } = await r.json();
+      if (real === lang) return;
+      set(real);
+      if (after) after();
+    } catch (e) { /* сервер занят, останемся на быстрой копии */ }
+  }
+
+  return { t, plural, num, time, date, collator, byName, apply, set, sync, locale,
+           get lang() { return lang; } };
 })();
 
 const t = I18N.t;

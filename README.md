@@ -2,6 +2,8 @@
 
 A tag-based file catalog for Windows, built to replace folders.
 
+![The triage screen: a pile of unsorted work on the right, tag groups on the left](assets/screens/triage.png)
+
 ## Why
 
 A folder tree gives every file exactly one parent, but a real file belongs to
@@ -22,15 +24,17 @@ The folder sits at the root of the storage drive and is the only one you ever
 open by hand.
 
 **Sort the pile later, in one go.** The Triage screen shows everything waiting.
-Select a few files, tick the tags that apply to all of them, press Разложить.
-The files move into storage and disappear from the pile. Tagging fifty files
-takes about as long as tagging five, because you tag them in batches rather
-than one at a time.
+Select a few files, tick the tags that apply to all of them, press Sort. The
+files move into storage and disappear from the pile. Tagging fifty files takes
+about as long as tagging five, because you tag them in batches rather than one
+at a time.
 
 **Find things on the Library screen.** Pick tags and the list narrows. Combine
-them with И (all of them) or ИЛИ (any of them), add a file format, a date
-range, or a piece of the file name. The query is a set of conditions, not a
-path, so the order you pick things in does not matter.
+them with All or Any, add a file format, a date range, or a piece of the file
+name. The query is a set of conditions, not a path, so the order you pick
+things in does not matter.
+
+![The library screen, filtered by tag, format and date](assets/screens/library.png)
 
 **Group work into catalogs.** A catalog looks like a folder and behaves like
 one when you walk into it, but it is a relation, not a place. The same file can
@@ -61,6 +65,13 @@ back with its tags intact.
 Tanba can also start with Windows and sit in the notification area, counting
 what is waiting to be sorted.
 
+**English or Russian, chosen during setup and switchable at any time.** Tags are
+not part of that: they are your words, so a tag created in Russian stays Russian
+in an English window. The screenshots here show exactly that, an English
+interface over a Russian archive.
+
+![The tags screen: groups of tags, each with its own rules](assets/screens/tags.png)
+
 ## Installing
 
 Download `Tanba-win-Setup.exe` from the
@@ -70,20 +81,18 @@ It installs for the current user only and needs no administrator rights.
 Because the installer is not code-signed, Windows shows a "Windows protected
 your PC" warning on first run: choose **More info**, then **Run anyway**.
 
-By default Tanba expects its storage on drive `S:`. To keep it somewhere else,
-set an environment variable before starting:
-
-```
-setx TANBA_ROOT D:\archive
-```
-
-On first run the program creates the folders it needs and an empty database.
+On first run Tanba asks for a language and for somewhere to keep the archive.
+It reads the folder you pick rather than trusting it: an empty one it fills in,
+one that already holds a Tanba catalog it adopts and tells you how big it is,
+and one holding somebody else's files it warns about and lists exactly what it
+would create alongside them. It also scans the attached drives itself, so if
+there is already a catalog on the machine the answer is one click.
 
 ## Updating
 
-Open Настройки and press Проверить. If a newer version is out, the button
-offers to install it, and Tanba restarts on the new version. Everything on the
-storage drive is untouched by updates.
+Open Settings and press Check. If a newer version is out, the button offers to
+install it, and Tanba restarts on the new version with the window open where
+you left it. Everything on the storage drive is untouched by updates.
 
 ## What lands on the disk
 
@@ -101,9 +110,10 @@ contents of the catalog stay readable even if the program itself is gone.
 
 ## Status
 
-Built for one design team and used daily. Interface and documentation for the
-people using it are in Russian; the code and this page are in English.
-See [DEVELOPING.md](DEVELOPING.md) if you want to build or change it.
+Built for one design team and used daily. The interface speaks English and
+Russian; the source comments are Russian, and this page and the commit history
+are English. See [DEVELOPING.md](DEVELOPING.md) if you want to build or change
+it.
 
 ## Licence
 

@@ -39,6 +39,13 @@ public static class SettingsApi
         // русским при открытии. Здесь настоящее место хранения: его читает
         // значок в трее, который никакого localStorage не видит.
 
+        // Дешёвый вопрос «на каком языке мы сейчас». Его задаёт каждая страница
+        // при загрузке: она рисует себя по быстрой копии из localStorage, а
+        // потом сверяется с настоящим значением. Иначе выбор, сделанный в
+        // мастере, до главного окна мог не доехать: у мастера своё окно и свой
+        // профиль WebView2, а значит и свой localStorage.
+        app.MapGet("/api/lang", () => Results.Ok(new { lang = Lang.Pick(prefs.Get(Prefs.Lang)) }));
+
         app.MapPost("/api/lang", (LangPatch p) =>
         {
             var lang = Lang.Pick(p.Lang);
