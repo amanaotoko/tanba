@@ -159,16 +159,18 @@ if (scrBox()) {
 
 // ── Правое меню ────────────────────────────────────────────────────────
 
-// Значок, подпись и надо ли считать выделенные в подписи.
+// Значок, ключ подписи и надо ли считать выделенные в подписи.
+// Ключ, а не готовая строка: меню собирается заново на каждый показ,
+// и подпись берётся на том языке, который выбран сейчас.
 const ACTS = {
-  open:   ['i-play', 'Открыть', true],
-  reveal: ['i-search', 'Показать в проводнике', false],
-  rename: ['i-pencil', 'Переименовать', false],
-  tags:   ['i-tag', 'Настроить теги', true],
-  tocat:  ['i-folder', 'В каталог', false],
-  del:    ['i-trash', 'Удалить', true, 'danger'],
-  enter:  ['i-folder', 'Открыть', false],
-  delcat: ['i-trash', 'Удалить каталог', false, 'danger'],
+  open:   ['i-play', 'common.cmd.open', true],
+  reveal: ['i-search', 'menu.reveal', false],
+  rename: ['i-pencil', 'common.cmd.rename', false],
+  tags:   ['i-tag', 'common.cmd.tags', true],
+  tocat:  ['i-folder', 'menu.toCatalog', false],
+  del:    ['i-trash', 'common.cmd.delete', true, 'danger'],
+  enter:  ['i-folder', 'common.cmd.open', false],
+  delcat: ['i-trash', 'menu.deleteCatalog', false, 'danger'],
 };
 
 /// Набор по умолчанию. Библиотека подменяет его своим, потому что у неё
@@ -187,10 +189,11 @@ function showCtx(x, y, file) {
   const n = scrSel().length;
   const rows = (scr().menu?.(file) || ACTS_DEFAULT).map(key => {
     if (key === '-') return '<div class="line"></div>';
-    const [icon, label, counted, cls = ''] = ACTS[key];
+    const [icon, str, counted, cls = ''] = ACTS[key];
+    const label = t(str);
     return `<button data-act="${key}" class="${cls}">
        <svg class="ic"><use href="#${icon}"></use></svg>${
-         counted && n > 1 ? `${label} (${n})` : label}</button>`;
+         counted && n > 1 ? `${label} (${I18N.num(n)})` : label}</button>`;
   });
 
   ctx = document.createElement('div');

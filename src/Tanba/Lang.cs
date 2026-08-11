@@ -25,4 +25,19 @@ public static class Lang
 
     /// <summary>Сохранённый выбор, а если его нет или он бессмысленный, язык Windows.</summary>
     public static string Pick(string? stored) => stored is Ru or En ? stored : OfWindows();
+
+    /// <summary>
+    /// Язык, на котором программа говорит прямо сейчас. Ставится при запуске
+    /// из настроек и меняется вместе с ними, см. Words.Use.
+    ///
+    /// Нужен там, где подпись рождается на сервере и уходит в окно готовой
+    /// строкой: панель отбора в библиотеке присылает названия своих групп
+    /// вместе с данными, и отличить их в окне от имени тега уже нельзя.
+    /// </summary>
+    public static string Current { get; private set; } = OfWindows();
+
+    internal static void SetCurrent(string lang) => Current = Pick(lang);
+
+    /// <summary>Выбор одной из двух подписей по текущему языку.</summary>
+    public static string Say(string ru, string en) => Current == En ? en : ru;
 }

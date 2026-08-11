@@ -19,16 +19,6 @@ const send = async (method, url, body) => {
   return r.json();
 };
 
-function plural(n, one, few, many) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b > 1 && b < 5) return few;
-  if (b === 1) return one;
-  return many;
-}
-
-const num = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
 // ── Отрисовка ───────────────────────────────────────────────────────────
 
 async function load() {
@@ -42,8 +32,8 @@ function render() {
   $('ver').textContent = s.version;
   $('root').textContent = s.root;
   $('rootNote').textContent = s.scanning
-    ? 'Считаю, что лежит в приёме'
-    : `В приёме ${num(s.pending)} ${plural(s.pending, 'файл', 'файла', 'файлов')}`;
+    ? t('set.root.scanning')
+    : tn(s.pending, 'set.root.pending');
 
   // Состояние обновления одной строкой: она же несёт ошибку, если та случилась.
   const st = $('upState');
@@ -52,30 +42,30 @@ function render() {
   $('check').disabled = false;
 
   if (installing) {
-    st.textContent = 'Устанавливаю, окно сейчас закроется и откроется заново';
+    st.textContent = t('set.up.installing');
     st.classList.add('wait');
     $('check').disabled = true;
   } else if (u.busy) {
-    st.textContent = 'Смотрю…';
+    st.textContent = t('set.up.checking');
     st.classList.add('wait');
     $('check').disabled = true;
   } else if (u.error) {
     st.textContent = u.error;
     st.classList.add('err');
   } else if (u.available) {
-    st.textContent = `Есть версия ${u.available}`;
+    st.textContent = t('set.up.available', { ver: u.available });
     st.classList.add('ok');
     $('apply').hidden = false;
   } else if (!u.configured) {
-    st.textContent = 'Источник обновлений не указан';
+    st.textContent = t('set.up.noSource');
   } else if (u.checkedAt) {
-    st.textContent = `Последняя проверка: ${when(u.checkedAt)}. Установлена самая свежая.`;
+    st.textContent = t('set.up.upToDate', { when: when(u.checkedAt) });
   } else {
-    st.textContent = 'Ещё не проверяли';
+    st.textContent = t('set.up.never');
   }
 
   // Адрес и ключ доступа вшиты при сборке, поэтому здесь их только показываем.
-  $('repo').textContent = u.repo || 'репозиторий не задан при сборке';
+  $('repo').textContent = u.repo || t('set.up.noRepo');
 
   // Запуск
   $('startup').classList.toggle('on', s.startup);
@@ -83,21 +73,20 @@ function render() {
   $('target').textContent = s.startupTarget;
 
   $('stLeft').textContent = u.installed
-    ? 'Установленная копия'
-    : 'Запущена не из установленной копии, обновление недоступно';
+    ? t('set.up.installed')
+    : t('set.up.portable');
   $('stRight').textContent = `Tanba ${s.version}`;
 }
 
 /// Дата проверки словами: «сегодня в 14:22» читается быстрее, чем 2026-08-09.
 function when(unix) {
-  const d = new Date(unix * 1000);
-  const t = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const time = I18N.time(unix);
+  const day = new Date(unix * 1000); day.setHours(0, 0, 0, 0);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diff = Math.round((today - day) / 86400000);
-  if (diff === 0) return `сегодня в ${t}`;
-  if (diff === 1) return `вчера в ${t}`;
-  return d.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + ` в ${t}`;
+  if (diff === 0) return t('set.when.today', { time });
+  if (diff === 1) return t('set.when.yesterday', { time });
+  return t('set.when.onDate', { date: I18N.date(unix), time });
 }
 
 // ── Обновление ──────────────────────────────────────────────────────────
@@ -146,7 +135,7 @@ function watchInstall() {
 /// «обновляюсь» и оставляли человека перед надписью, которая уже никогда
 /// не сменится. Успех здесь один: по тому же адресу отзовётся новая версия.
 function waitForNewVersion() {
-  say('Обновляюсь', 'Окно откроется заново само.');
+  say(t('set.up.updating.title'), t('set.up.updating.body'));
 
   let left = 60;
   const back = setInterval(async () => {
@@ -157,8 +146,7 @@ function waitForNewVersion() {
     } catch (e) {
       if (--left > 0) return;
       clearInterval(back);
-      say('Обновление не установилось',
-          'Программа так и не отозвалась. Закрой окно и запусти Tanba заново.');
+      say(t('set.up.failed.title'), t('set.up.failed.body'));
     }
   }, 1000);
 }
@@ -187,12 +175,12 @@ $('startup').onclick = async () => {
     render();
     // Отвечаем тем, что получилось, а не тем, о чём просили: запись в реестр
     // мог запретить администратор, и молчаливое «включено» было бы враньём.
-    toast(r.on ? 'Tanba будет запускаться вместе с Windows' : 'Автозапуск выключен');
+    toast(r.on ? t('set.startup.on') : t('set.startup.off'));
   } catch (e) { toast(String(e.message || e), 'err'); }
   finally { sw.classList.remove('busy'); }
 };
 
-$('openRoot').onclick = () => send('POST', '/api/openroot').catch(() => toast('Не открылось', 'err'));
+$('openRoot').onclick = () => send('POST', '/api/openroot').catch(() => toast(t('toast.openFailedShort'), 'err'));
 
 // ── Мелочи ──────────────────────────────────────────────────────────────
 
@@ -221,6 +209,29 @@ function paintTheme() {
   const now = document.documentElement.dataset.tanba === 'light' ? 'light' : 'dark';
   for (const b of $('theme').children) b.classList.toggle('on', b.dataset.theme === now);
 }
+
+// Единственный переключатель языка, по тем же причинам, что и у темы.
+for (const b of $('lang').children) {
+  b.onclick = () => {
+    const v = b.dataset.lang;
+    // Разметку переписывает apply, а тексты, которые собирает код, render:
+    // на экране есть и то, и другое.
+    I18N.set(v);
+    I18N.apply();
+    paintLang();
+    if (s) render();   // до первого ответа сервера рисовать ещё нечего
+    // Настоящее место выбора это настройки программы, а не localStorage:
+    // значок в трее и мастер первого запуска берут язык оттуда.
+    send('POST', '/api/lang', { lang: v }).catch(e => toast(String(e.message || e), 'err'));
+  };
+}
+
+function paintLang() {
+  for (const b of $('lang').children) b.classList.toggle('on', b.dataset.lang === I18N.lang);
+}
+
+I18N.apply();
 paintTheme();
+paintLang();
 
 load();

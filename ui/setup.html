@@ -18,29 +18,48 @@
 
 <div class="wiz">
 
-  <!-- 1. Приветствие ─────────────────────────────────────────────────── -->
-  <section class="pane mid" id="pWelcome">
+  <!-- 1. Язык ────────────────────────────────────────────────────────── -->
+  <section class="pane" id="pLang">
+    <h1 data-i18n="setup.lang.title">Выбери язык</h1>
+    <p class="sub" data-i18n="setup.lang.sub">Его можно поменять потом в настройках.</p>
+
+    <!-- Названия языков не переводятся: каждое написано на себе самом, и
+         человек находит своё раньше, чем прочитает остальное. -->
+    <button class="opt" id="langRu" lang="ru">
+      <span class="box"><svg class="ic"><use href="#i-check"></use></svg></span>
+      <span class="otext"><span class="oh">Русский</span></span>
+    </button>
+
+    <button class="opt" id="langEn" lang="en">
+      <span class="box"><svg class="ic"><use href="#i-check"></use></svg></span>
+      <span class="otext"><span class="oh">English</span></span>
+    </button>
+  </section>
+
+  <!-- 2. Приветствие ─────────────────────────────────────────────────── -->
+  <section class="pane mid" id="pWelcome" hidden>
     <svg class="mark"><use href="#t-logo"></use></svg>
     <div class="hello">
       <div class="hname">Tanba</div>
       <div class="hver mono" id="ver"></div>
     </div>
-    <p class="hlead">Каталог файлов, который заменяет папки тегами.
+    <p class="hlead" data-i18n="setup.welcome.lead">Каталог файлов, который заменяет папки тегами.
        Настройка займёт минуту.</p>
   </section>
 
-  <!-- 2. Где держать архив ───────────────────────────────────────────── -->
+  <!-- 3. Где держать архив ───────────────────────────────────────────── -->
   <section class="pane" id="pPlace" hidden>
-    <h1>Где держать архив</h1>
-    <p class="sub" id="placeSub">Файлы остаются на диске. Tanba создаст рядом
+    <h1 data-i18n="setup.place.title">Где держать архив</h1>
+    <p class="sub" id="placeSub" data-i18n="setup.place.sub">Файлы остаются на диске. Tanba создаст рядом
        служебные папки и базу с тегами.</p>
 
     <div class="pathrow">
       <label class="pathbox" id="pathBox">
         <svg class="ic"><use href="#i-folder"></use></svg>
-        <input id="path" spellcheck="false" autocomplete="off" placeholder="D:\Архив">
+        <input id="path" spellcheck="false" autocomplete="off"
+               data-i18n-placeholder="setup.place.placeholder" placeholder="D:\Архив">
       </label>
-      <button class="btn" id="browse">Обзор</button>
+      <button class="btn" id="browse" data-i18n="setup.place.browse">Обзор</button>
     </div>
 
     <div class="verdict" id="verdict" hidden>
@@ -50,7 +69,7 @@
     </div>
 
     <div class="willmake" id="willmake" hidden>
-      <div class="cap">Что появится в этой папке</div>
+      <div class="cap" data-i18n="setup.place.willmake">Что появится в этой папке</div>
       <div class="mono lines">
         <span>Inbox\</span>
         <span>_store\</span>
@@ -60,26 +79,26 @@
 
   </section>
 
-  <!-- 3. Как запускать ───────────────────────────────────────────────── -->
+  <!-- 4. Как запускать ───────────────────────────────────────────────── -->
   <section class="pane" id="pLaunch" hidden>
-    <h1>Как запускать</h1>
-    <p class="sub">Обе настройки можно поменять потом.</p>
+    <h1 data-i18n="setup.launch.title">Как запускать</h1>
+    <p class="sub" data-i18n="setup.launch.sub">Обе настройки можно поменять потом.</p>
 
     <button class="opt" id="optShortcut">
       <span class="box"><svg class="ic"><use href="#i-check"></use></svg></span>
-      <span class="otext"><span class="oh">Ярлык на рабочем столе</span></span>
+      <span class="otext"><span class="oh" data-i18n="setup.launch.shortcut">Ярлык на рабочем столе</span></span>
     </button>
 
     <button class="opt" id="optAutostart">
       <span class="box"><svg class="ic"><use href="#i-check"></use></svg></span>
-      <span class="otext"><span class="oh">Запускать вместе с Windows</span></span>
+      <span class="otext"><span class="oh" data-i18n="setup.launch.autostart">Запускать вместе с Windows</span></span>
     </button>
   </section>
 
-  <!-- 4. Готовлю ─────────────────────────────────────────────────────── -->
+  <!-- 5. Готовлю ─────────────────────────────────────────────────────── -->
   <section class="pane" id="pWork" hidden>
-    <h1 id="workTitle">Готовлю каталог</h1>
-    <p class="sub" id="workSub">Создаю служебные папки и смотрю, что уже лежит в архиве.</p>
+    <h1 id="workTitle" data-i18n="setup.work.title">Готовлю каталог</h1>
+    <p class="sub" id="workSub" data-i18n="setup.work.sub">Создаю служебные папки и смотрю, что уже лежит в архиве.</p>
 
     <div class="prog">
       <div class="prow"><span id="progLabel"></span><span class="mono" id="progPct"></span></div>
@@ -87,11 +106,11 @@
     </div>
   </section>
 
-  <!-- 5. Готово ──────────────────────────────────────────────────────── -->
+  <!-- 6. Готово ──────────────────────────────────────────────────────── -->
   <section class="pane mid" id="pDone" hidden>
     <span class="bigcheck"><svg class="ic"><use href="#i-check"></use></svg></span>
-    <div class="hname">Всё готово</div>
-    <p class="hlead">Сохраняй всё в «Inbox», разберёшь потом одной пачкой.</p>
+    <div class="hname" data-i18n="setup.done.title">Всё готово</div>
+    <p class="hlead" data-i18n="setup.done.lead">Сохраняй всё в «Inbox», разберёшь потом одной пачкой.</p>
     <div class="mono dim" id="doneWhere"></div>
   </section>
 
@@ -99,12 +118,14 @@
     <div class="dots" id="dots"></div>
     <span class="steplbl" id="stepLbl"></span>
     <span class="grow"></span>
-    <button class="btn" id="back" hidden>Назад</button>
-    <button class="btn btn-primary" id="next">Начать</button>
+    <button class="btn" id="back" data-i18n="setup.nav.back" hidden>Назад</button>
+    <button class="btn btn-primary" id="next" data-i18n="setup.nav.next">Далее</button>
   </footer>
 
 </div>
 
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
 <script src="chrome.js"></script>
 <script src="setup.js"></script>
 </body>

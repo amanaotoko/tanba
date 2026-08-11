@@ -105,6 +105,10 @@ body{overflow:hidden}
   transition:width .16s}
 .dots i.done{background:var(--t3)}
 .dots i.now{width:18px;background:var(--t1)}
-.steplbl{color:var(--t3);font-size:12px;line-height:16px}
-.foot .btn{height:34px;padding:0 14px}
+ /* Подпись шага сжимается первой: у окна есть жёсткий минимум по ширине,
+   а «Шаг 2 из 6, где держать архив» по-английски длиннее. Кнопки не
+   сжимаются, иначе подпись в них переносится и вылезает за свою высоту. */
+.steplbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--t3);font-size:12px;line-height:16px}
+.foot .btn{flex:none;height:34px;padding:0 14px}
 .foot .btn-primary{padding:0 16px}

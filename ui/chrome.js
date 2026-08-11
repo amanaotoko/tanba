@@ -13,11 +13,14 @@
     document.documentElement.dataset.tanba = 'light';
   }
 
+  // Имя вкладки лежит рядом с ключом: русское остаётся в разметке запасным,
+  // а заполнение по data-i18n перекрывает его выбранным языком. Так вкладки
+  // следуют за языком и после переключения, а не только при первой сборке.
   var SCREENS = [
-    { href: 'index.html', name: 'Разбор', icon: 't-inbox' },
-    { href: 'library.html', name: 'Библиотека', icon: 't-grid' },
-    { href: 'tags.html', name: 'Теги', icon: 't-tag' },
-    { href: 'settings.html', name: 'Настройки', icon: 't-cog' }
+    { href: 'index.html', name: 'Разбор', key: 'nav.triage', icon: 't-inbox' },
+    { href: 'library.html', name: 'Библиотека', key: 'nav.library', icon: 't-grid' },
+    { href: 'tags.html', name: 'Теги', key: 'nav.tags', icon: 't-tag' },
+    { href: 'settings.html', name: 'Настройки', key: 'nav.settings', icon: 't-cog' }
   ];
 
   var host = document.getElementById('chrome');
@@ -28,7 +31,7 @@
   var tabs = SCREENS.map(function (s) {
     return '<a class="tab' + (s.href === here ? ' on' : '') + '" href="' + s.href + '">' +
            '<svg class="ic"><use href="#' + s.icon + '"></use></svg>' +
-           '<span>' + s.name + '</span></a>';
+           '<span data-i18n="' + s.key + '">' + s.name + '</span></a>';
   }).join('');
 
   host.className = 'titlebar';
@@ -85,13 +88,18 @@
     '<nav class="tabs">' + tabs + '</nav>' +
     '<div class="tgrip"></div>' +
     '<div class="wbtns">' +
-      '<button class="wbtn" data-win="min" title="Свернуть">' +
+      '<button class="wbtn" data-win="min" data-i18n-title="win.minimize" title="Свернуть">' +
         '<svg class="ic"><use href="#w-min"></use></svg></button>' +
-      '<button class="wbtn" data-win="max" title="Развернуть">' +
+      '<button class="wbtn" data-win="max" data-i18n-title="win.maximize" title="Развернуть">' +
         '<svg class="ic"><use id="wMaxIcon" href="#w-max"></use></svg></button>' +
-      '<button class="wbtn wclose" data-win="close" title="Закрыть">' +
+      '<button class="wbtn wclose" data-win="close" data-i18n-title="win.close" title="Закрыть">' +
         '<svg class="ic"><use href="#w-close"></use></svg></button>' +
     '</div>';
+
+  // Шапку собрали с русским текстом, теперь заполняем по словарю. Дальше
+  // за неё отвечает общий проход по странице: он идёт по всему документу
+  // и после переключения языка забирает шапку вместе с остальным.
+  I18N.apply(host);
 
   // Размер плиток. Класс вешаем на обёртку .files, а не на саму сетку:
   // сетку перерисовывают на каждое действие, обёртку нет, и выбранный
@@ -190,7 +198,12 @@
     var use = document.getElementById('wMaxIcon');
     if (use) use.setAttribute('href', m.max ? '#w-rest' : '#w-max');
 
+    // Меняем не саму подсказку, а ключ под ней: иначе переключение языка
+    // вернуло бы кнопке текст из разметки, а он всегда про развернуть.
     var btn = host.querySelector('[data-win="max"]');
-    if (btn) btn.title = m.max ? 'Вернуть прежний размер' : 'Развернуть';
+    if (btn) {
+      btn.dataset.i18nTitle = m.max ? 'win.restore' : 'win.maximize';
+      btn.title = t(btn.dataset.i18nTitle);
+    }
   });
 })();

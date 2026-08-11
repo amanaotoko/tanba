@@ -12,7 +12,8 @@ a.btn{text-decoration:none}
 
 /* ── Поиск по имени ─────────────────────────────────────────────────── */
 
-.find{display:flex;align-items:center;gap:8px;width:230px;height:34px;padding:0 10px;
+.find{display:flex;align-items:center;gap:8px;width:230px;max-width:34vw;
+  min-width:120px;height:34px;padding:0 10px;
   border-radius:8px;background:var(--s3);color:var(--t3)}
 .find:focus-within{outline:1.5px solid var(--a1)}
 .find input{flex:1;min-width:0;height:100%;background:none;border:none;outline:none;
@@ -65,9 +66,12 @@ a.btn{text-decoration:none}
 .cmd > .cbtn .ic{font-size:16px}
 
 .pick > .seg, .cmd > .seg{padding:3px}
-.pick > .seg button, .cmd > .seg button{height:26px;border-radius:6px;padding:0 13px}
+/* Одинаковая ширина на обоих языках: «И» против «All» иначе двигала бы
+   всю строку отбора при каждом переключении языка. */
+.pick > .seg button, .cmd > .seg button{height:26px;border-radius:6px;padding:0 13px;
+  min-width:46px;justify-content:center}
 /* Деления со значком вместо подписи: размер плиток называть словами негде */
-.pick > .seg button:has(.ic), .cmd > .seg button:has(.ic){padding:0 8px}
+.pick > .seg button:has(.ic), .cmd > .seg button:has(.ic){padding:0 8px;min-width:auto}
 .pick > .seg button .ic, .cmd > .seg button .ic{font-size:14px;display:block}
 
 /* ── Командная панель ───────────────────────────────────────────────── */
@@ -231,6 +235,10 @@ a.btn{text-decoration:none}
 
 .status{display:flex;align-items:center;gap:16px;padding:0 16px;
   background:var(--s2);color:var(--t2);font-size:12px;line-height:16px}
+/* Та же беда, что у .bar, и здесь она острее: справа лежит полный путь
+   к хранилищу, который длиннее всего остального вместе взятого. */
+.status > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status > .grow{flex:1}
 
 /* ── Панель справа ──────────────────────────────────────────────────── */
 

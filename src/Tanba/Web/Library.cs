@@ -251,13 +251,16 @@ public static class Library
                 root = cfg.Root,
                 groups = GroupsWithCounts(c, counts, narrowing ? 0 : total),
                 formats = FormatGroup(c, extCounts, 0),
+                // Названия групп панели рождаются здесь и уходят в окно готовой
+                // строкой: отличить их там от имени тега уже нельзя, а имена
+                // тегов переводить запрещено. Поэтому переводим на месте.
                 kinds = new
                 {
-                    name = "Показать",
+                    name = Lang.Say("Показать", "Show"),
                     items = new[]
                     {
-                        new { key = "files", name = "файлы", count = nFiles },
-                        new { key = "catalogs", name = "каталоги", count = nCats },
+                        new { key = "files", name = Lang.Say("файлы", "files"), count = nFiles },
+                        new { key = "catalogs", name = Lang.Say("каталоги", "catalogs"), count = nCats },
                     },
                 },
             });
@@ -509,7 +512,7 @@ public static class Library
                 items.Add(new { ext = e, name = e, count = baseline + counts.GetValueOrDefault(e) });
             }
 
-        return new { name = "Формат", isMulti = true, items };
+        return new { name = Lang.Say("Формат", "Format"), isMulti = true, items };
     }
 
     /// <summary>Теги для целой страницы результатов одним запросом.</summary>

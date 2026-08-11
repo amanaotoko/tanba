@@ -170,6 +170,14 @@ input{font:inherit;color:inherit}
 .side{background:var(--s1);padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px}
 
 .bar{display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--s1)}
+/* Ряд фиксированной высоты, в нём семь элементов и переносить их некуда.
+   По умолчанию flex не даёт сжать элемент уже самого длинного слова, поэтому
+   строка выезжала за край и правый край её обрезал молча. Кнопки не сжимаем
+   вовсе, у них своя высота и подпись в них перенеслась бы за свои границы,
+   а счётчики сжимаем с многоточием: цифру можно недосказать, кнопку нельзя.
+   Заметно это стало на английском, где подписи длиннее. */
+.bar > .btn{flex:none}
+.bar > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Кнопки ─────────────────────────────────────────────────────────── */
 

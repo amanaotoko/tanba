@@ -19,14 +19,6 @@ const send = async (method, url, body) => {
 };
 const jget = url => send('GET', url);
 
-function plural(n, one, few, many) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b > 1 && b < 5) return few;
-  if (b === 1) return one;
-  return many;
-}
-
 // ── Отрисовка ──────────────────────────────────────────────────────────
 
 async function load() {
@@ -43,47 +35,54 @@ function render() {
   // где что-то нашлось: пустые карточки групп сбивают счёт находкам.
   const shown = find
     ? tree.groups
-        .map(g => ({ ...g, tags: g.tags.filter(t => t.name.toLowerCase().includes(find)) }))
+        .map(g => ({ ...g, tags: g.tags.filter(tag => tag.name.toLowerCase().includes(find)) }))
         .filter(g => g.tags.length)
     : tree.groups;
 
-  const groups = shown.map(g => `
+  // Порядок тегов внутри группы наш, не базы: база сравнивает имена байтами
+  // и уводит всю латиницу вперёд кириллицы, а в списке они должны идти
+  // вперемешку. Сами имена при этом не трогаем, это данные человека.
+  const cards = shown.map(g => ({
+    ...g, tags: g.tags.slice().sort((a, b) => I18N.byName(a.name, b.name)),
+  }));
+
+  const groups = cards.map(g => `
     <div class="gcard" data-group="${g.id}">
       <input class="gname" value="${esc(g.name)}" spellcheck="false">
       <div class="gflags">
         <button class="flag${g.isMulti ? ' on' : ''}" data-flag="multi"
-                title="Можно ли повесить на файл несколько тегов этой группы">несколько тегов</button>
+                title="${t('tags.flag.multi.tip')}">${t('tags.flag.multi')}</button>
         <button class="flag${g.isRequired ? ' on' : ''}" data-flag="required"
-                title="Файл без тега из этой группы считается неразмеченным">обязательная</button>
+                title="${t('tags.flag.required.tip')}">${t('tags.flag.required')}</button>
       </div>
 
-      ${g.tags.map(t => `
-        <div class="trow" data-tag="${t.id}">
-          <input class="tname" value="${esc(t.name)}" spellcheck="false">
-          <span class="tcount">${t.count || ''}</span>
+      ${g.tags.map(tag => `
+        <div class="trow" data-tag="${tag.id}">
+          <input class="tname" value="${esc(tag.name)}" spellcheck="false">
+          <span class="tcount">${tag.count ? I18N.num(tag.count) : ''}</span>
           <div class="tacts">
-            <button data-act="merge" title="Объединить с другим тегом">
+            <button data-act="merge" title="${t('tags.merge.tip')}">
               <svg class="ic"><use href="#i-merge"></use></svg></button>
-            <button data-act="del" class="del" title="Удалить тег">
+            <button data-act="del" class="del" title="${t('tags.del.tip')}">
               <svg class="ic"><use href="#i-trash"></use></svg></button>
           </div>
         </div>`).join('')}
 
-      <div class="tnew"><input placeholder="новый тег…" data-newtag="${g.id}"></div>
+      <div class="tnew"><input placeholder="${t('common.tag.new')}" data-newtag="${g.id}"></div>
 
       <div class="gdel">
-        <button class="mini mini-ghost" data-delgroup="${g.id}">Удалить группу</button>
+        <button class="mini mini-ghost" data-delgroup="${g.id}">${t('tags.group.del')}</button>
       </div>
     </div>`).join('');
 
   // Карточку новой группы при поиске не показываем: заводить группу,
   // пока ищешь тег, никто не собирается, а находки она сбивает.
   $('editor').innerHTML = find
-    ? (groups || `<p class="dim">Такого тега нет</p>`)
+    ? (groups || `<p class="dim">${t('common.tagNotFound')}</p>`)
     : groups + `
     <div class="gcard new">
-      <input class="gname" placeholder="новая группа…" id="newGroup" spellcheck="false">
-      <p class="dim" style="margin:6px 0 0">Enter создаёт группу</p>
+      <input class="gname" placeholder="${t('tags.group.new.placeholder')}" id="newGroup" spellcheck="false">
+      <p class="dim" style="margin:6px 0 0">${t('tags.group.new.hint')}</p>
     </div>`;
 
   wire();
@@ -91,9 +90,8 @@ function render() {
   const nt = tree.groups.reduce((s, g) => s + g.tags.length, 0);
   const found = shown.reduce((s, g) => s + g.tags.length, 0);
   $('stCount').textContent = find
-    ? `Нашлось ${found} ${plural(found, 'тег', 'тега', 'тегов')} из ${nt}`
-    : `${tree.groups.length} ${plural(tree.groups.length, 'группа', 'группы', 'групп')}, ` +
-      `${nt} ${plural(nt, 'тег', 'тега', 'тегов')}`;
+    ? tn(found, 'tags.status.found', { total: I18N.num(nt) })
+    : tn(tree.groups.length, 'tags.status.groups') + ', ' + tn(nt, 'tags.status.tags');
 }
 
 $('q').oninput = () => { find = $('q').value.trim().toLowerCase(); render(); };
@@ -108,7 +106,7 @@ function wire() {
     const save = async () => {
       const nm = input.value.trim();
       if (!nm || nm === was) { input.value = was; return; }
-      try { await send('PATCH', '/api/groups/' + id, { name: nm }); await load(); toast('Переименовано'); }
+      try { await send('PATCH', '/api/groups/' + id, { name: nm }); await load(); toast(t('toast.renamed')); }
       catch (e) { input.value = was; toast(err(e), 'err'); }
     };
     input.onblur = save;
@@ -142,15 +140,15 @@ function wire() {
         if (r.needMerge) {
           input.value = was;
           const ok = await askBox({
-            title: `Тег «${nm}» уже есть`,
-            text: 'Объединить их? Все файлы, помеченные этим тегом, получат существующий, а лишний исчезнет.',
-            ok: 'Объединить', danger: false,
+            title: t('tags.mergeExists.title', { name: esc(nm) }),
+            text: t('tags.mergeExists.body'),
+            ok: t('tags.merge.ok'), danger: false,
           });
           if (ok) {
             const m = await send('POST', `/api/tags/${id}/merge`, { intoId: r.into });
-            toast(`Объединено, перенесено расстановок: ${m.moved}`);
+            toast(tn(m.moved, 'toast.mergedMarks'));
           }
-        } else toast('Переименовано');
+        } else toast(t('toast.renamed'));
         await load();
       } catch (e) { input.value = was; toast(err(e), 'err'); }
     };
@@ -183,7 +181,7 @@ function wire() {
     if (e.key !== 'Enter' || !$('newGroup').value.trim()) return;
     await send('POST', '/api/groups', { name: $('newGroup').value.trim(), isMulti: true });
     await load();
-    toast('Группа создана');
+    toast(t('toast.groupCreated'));
   };
 }
 
@@ -193,15 +191,14 @@ async function delTag(id, name) {
   const r = await send('DELETE', '/api/tags/' + id);
   if (r.needConfirm) {
     const ok = await askBox({
-      title: `Удалить тег «${name}»?`,
-      text: `Он стоит на ${r.marks} ${plural(r.marks, 'файле', 'файлах', 'файлах')}. ` +
-            `Файлы останутся на диске и в библиотеке, пропадёт только эта пометка.`,
+      title: t('tags.del.title', { name: esc(name) }),
+      text: tn(r.marks, 'tags.del.body'),
     });
     if (!ok) return;
     await send('DELETE', `/api/tags/${id}?force=true`);
   }
   await load();
-  toast('Тег удалён');
+  toast(t('toast.tagDeleted'));
 }
 
 async function delGroup(id) {
@@ -209,38 +206,37 @@ async function delGroup(id) {
   const r = await send('DELETE', '/api/groups/' + id);
   if (r.needConfirm) {
     const ok = await askBox({
-      title: `Удалить группу «${g ? g.name : ''}» целиком?`,
-      text: `В ней ${r.tags} ${plural(r.tags, 'тег', 'тега', 'тегов')}, ` +
-            `расставленных ${r.marks} ${plural(r.marks, 'раз', 'раза', 'раз')}. ` +
-            `Файлы останутся на месте, пропадут только пометки.`,
-      ok: 'Удалить группу',
+      title: t('tags.delGroup.title', { name: esc(g ? g.name : '') }),
+      text: tn(r.tags, 'tags.delGroup.body', { marks: tn(r.marks, 'tags.delGroup.marks') }),
+      ok: t('tags.group.del'),
     });
     if (!ok) return;
     await send('DELETE', `/api/groups/${id}?force=true`);
   }
   await load();
-  toast('Группа удалена');
+  toast(t('toast.groupDeleted'));
 }
 
 // Объединение: главный инструмент уборки, когда завелись
 // «Профориентация» и «профориентация».
 async function mergeTag(id, name) {
-  const all = tree.groups.flatMap(g => g.tags.map(t => ({ ...t, group: g.name })))
-                         .filter(t => t.id !== id);
-  if (!all.length) return toast('Объединять не с чем');
+  const all = tree.groups.flatMap(g => g.tags.map(tag => ({ ...tag, group: g.name })))
+                         .filter(tag => tag.id !== id)
+                         .sort((a, b) => I18N.byName(a.name, b.name));
+  if (!all.length) return toast(t('toast.nothingToMerge'));
 
   const into = await pickBox({
-    title: `Объединить «${name}» с другим тегом`,
-    text: 'Файлы этого тега получат выбранный, а сам он исчезнет.',
+    title: t('tags.merge.title', { name: esc(name) }),
+    text: t('tags.merge.body'),
     items: all,
-    label: t => esc(t.name),
-    hint: t => `${esc(t.group)}${t.count ? ', ' + t.count : ''}`,
+    label: tag => esc(tag.name),
+    hint: tag => `${esc(tag.group)}${tag.count ? ', ' + I18N.num(tag.count) : ''}`,
   });
   if (!into) return;
 
   const r = await send('POST', `/api/tags/${id}/merge`, { intoId: into.id });
   await load();
-  toast(`Объединено с «${into.name}», перенесено: ${r.moved}`);
+  toast(tn(r.moved, 'toast.merged', { name: into.name }));
 }
 
 // ── Мелочи ─────────────────────────────────────────────────────────────
@@ -256,4 +252,7 @@ function toast(text, cls = '') {
   toastTimer = setTimeout(() => el.className = 'toast ' + cls, 3000);
 }
 
+// Разметка страницы и шапка уже на месте: проставляем в них тексты до того,
+// как придёт дерево, чтобы поле поиска не мигало чужим языком.
+I18N.apply();
 load();

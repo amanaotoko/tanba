@@ -43,7 +43,7 @@ window.tanbaCmd = {
   extra: (act, file) => {
     if (act === 'enter') return enterCatalog(file.id);
     if (act === 'reveal') return reveal(file.id);
-    if (act === 'tocat') return toast('Выбор каталога делаю следующим');
+    if (act === 'tocat') return toast(t('toast.catalogPickerSoon'));
     if (act === 'delcat') return deleteCatalogModal(file);
   },
 };
@@ -52,18 +52,16 @@ window.tanbaCmd = {
 // и сколько это весит. Слова склоняются, «2 элементов» не бывает.
 function updateStatus() {
   const total = res.total || 0;
-  $('stCount').textContent = `Элементов: ${num(total)}`;
+  $('stCount').textContent = tn(total, 'lib.status.items');
 
   const picked = res.files.filter(f => sel.has(f.id));
   if (picked.length) {
     const bytes = picked.reduce((s, f) => s + (f.size || 0), 0);
-    const word = plural(picked.length, 'элемент', 'элемента', 'элементов');
     // Глагол согласуется с существительным: «Выбран 1 элемент», но
-    // «Выбрано 2 элемента». Форму берём из самого слова, чтобы они
-    // не разъехались, если правило склонения когда-нибудь поправят.
-    const verb = word === 'элемент' ? 'Выбран' : 'Выбрано';
+    // «Выбрано 2 элемента». В словаре каждая форма лежит целиком, вместе
+    // с глаголом, поэтому разъехаться им негде.
     $('stSel').textContent =
-      `${verb} ${num(picked.length)} ${word}` + (bytes ? `, ${fmtSize(bytes)}` : '');
+      tn(picked.length, 'lib.status.selected') + (bytes ? `, ${fmtSize(bytes)}` : '');
   } else {
     $('stSel').textContent = '';
   }
@@ -98,14 +96,11 @@ function openModal(html) {
 
 function deleteCatalogModal(file) {
   const box = openModal(`
-    <h2>Удалить каталог «${esc(file.name)}»?</h2>
-    <p>Файлы остаются на диске и в библиотеке, их теги сохраняются.
-       Пропадёт только связь: ${file.count || 0}
-       ${plural(file.count || 0, 'объект перестанет', 'объекта перестанут', 'объектов перестанут')}
-       лежать в этом каталоге.</p>
+    <h2>${t('cat.del.title', { name: esc(file.name) })}</h2>
+    <p>${t('cat.del.body', { items: tn(file.count || 0, 'cat.del.count') })}</p>
     <div class="modal-acts">
-      <button class="btn" data-no>Отмена</button>
-      <button class="btn btn-danger" data-yes>Удалить связь</button>
+      <button class="btn" data-no>${t('common.cancel')}</button>
+      <button class="btn btn-danger" data-yes>${t('cat.del.ok')}</button>
     </div>`);
 
   box.querySelector('[data-yes]').onclick = async () => {
@@ -113,7 +108,7 @@ function deleteCatalogModal(file) {
     closeModal();
     sel.clear();
     await load();
-    toast('Каталог удалён, файлы на месте');
+    toast(t('toast.catalogDeleted'));
   };
   box.querySelector('[data-no]').onclick = closeModal;
 }

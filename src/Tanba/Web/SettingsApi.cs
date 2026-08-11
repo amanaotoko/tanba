@@ -34,6 +34,19 @@ public static class SettingsApi
             return Results.Ok(new { started = true });
         });
 
+        // ── Язык ─────────────────────────────────────────────────────────
+        // Окно держит быструю копию выбора в localStorage, чтобы не мигать
+        // русским при открытии. Здесь настоящее место хранения: его читает
+        // значок в трее, который никакого localStorage не видит.
+
+        app.MapPost("/api/lang", (LangPatch p) =>
+        {
+            var lang = Lang.Pick(p.Lang);
+            prefs.Set(Prefs.Lang, lang);
+            Words.Use(lang);
+            return Results.Ok(new { lang });
+        });
+
         // ── Автозапуск ───────────────────────────────────────────────────
         // Отвечаем тем, что получилось на самом деле: запись мог не дать
         // сделать администратор, и молча показывать «включено» нельзя.
@@ -59,6 +72,9 @@ public static class SettingsApi
         return new
         {
             version = u.Version,
+            // Настоящий выбор языка. У окна есть быстрая копия в localStorage,
+            // и разойтись они могут только если базу подменили под ним.
+            lang = Lang.Pick(prefs.Get(Prefs.Lang)),
             root = cfg.Root,
             inbox = cfg.Inbox,
             pending = pending(),
@@ -81,4 +97,5 @@ public static class SettingsApi
     }
 
     private sealed record StartupPatch(bool On);
+    private sealed record LangPatch(string? Lang);
 }

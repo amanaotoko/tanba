@@ -14,19 +14,23 @@ public sealed partial class Tray : IDisposable
     private readonly NotifyIcon _icon;
     private readonly Action _open;
     private readonly Action _rescan;
+    private readonly ToolStripItem _mOpen, _mRescan, _mQuit;
+    private readonly SynchronizationContext? _ui;
     private Icon? _current;
     private int _lastNotified = -1;
+    private int _pending;
 
     public Tray(Action open, Action rescan, Action quit)
     {
         _open = open;
         _rescan = rescan;
+        _ui = SynchronizationContext.Current;
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Открыть Tanba", null, (_, _) => _open());
-        menu.Items.Add("Пересканировать приём", null, (_, _) => _rescan());
+        _mOpen = menu.Items.Add(Words.Open, null, (_, _) => _open());
+        _mRescan = menu.Items.Add(Words.Rescan, null, (_, _) => _rescan());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Выход", null, (_, _) => quit());
+        _mQuit = menu.Items.Add(Words.Quit, null, (_, _) => quit());
 
         _icon = new NotifyIcon
         {
@@ -36,29 +40,46 @@ public sealed partial class Tray : IDisposable
         };
         _icon.DoubleClick += (_, _) => _open();
 
+        // Значок переживает окно и обязан говорить на том же языке.
+        // Язык меняют из запроса, то есть из чужого потока, поэтому
+        // возвращаемся в свой: меню это элемент управления.
+        Words.Changed += Relabel;
+
         Update(0);
+    }
+
+    private void Relabel()
+    {
+        if (_ui is not null && SynchronizationContext.Current != _ui)
+        {
+            _ui.Post(_ => Relabel(), null);
+            return;
+        }
+
+        _mOpen.Text = Words.Open;
+        _mRescan.Text = Words.Rescan;
+        _mQuit.Text = Words.Quit;
+        Update(_pending);
     }
 
     /// <summary>Обновляет цифру. Уведомление показываем только когда счётчик вырос заметно.</summary>
     public void Update(int pending)
     {
+        _pending = pending;
+
         var old = _current;
         _current = Render(pending);
         _icon.Icon = _current;
         old?.Dispose();
 
-        _icon.Text = pending == 0
-            ? "Tanba, всё разобрано"
-            : $"Tanba, {pending} {Plural(pending, "файл ждёт", "файла ждут", "файлов ждут")} разбора";
+        _icon.Text = pending == 0 ? Words.AllSorted : Words.Waiting(pending);
 
         // Одно ненавязчивое уведомление на каждую новую десятку, а не на каждый файл.
         var bucket = pending / 10;
         if (pending > 0 && bucket > 0 && bucket != _lastNotified)
         {
             _lastNotified = bucket;
-            _icon.ShowBalloonTip(4000, "Tanba",
-                $"В «{Config.InboxName}» накопилось {pending}. Разберёшь одной пачкой.",
-                ToolTipIcon.None);
+            _icon.ShowBalloonTip(4000, "Tanba", Words.PileUp(pending), ToolTipIcon.None);
         }
         if (pending == 0) _lastNotified = -1;
     }
@@ -122,20 +143,13 @@ public sealed partial class Tray : IDisposable
         return p;
     }
 
-    private static string Plural(int n, string one, string few, string many)
-    {
-        var a = Math.Abs(n) % 100;
-        var b = a % 10;
-        if (a is > 10 and < 20) return many;
-        return b switch { 1 => one, > 1 and < 5 => few, _ => many };
-    }
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool DestroyIcon(IntPtr handle);
 
     public void Dispose()
     {
+        Words.Changed -= Relabel;
         _icon.Visible = false;
         _icon.Dispose();
         _current?.Dispose();

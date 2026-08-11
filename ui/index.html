@@ -2,7 +2,7 @@
 <html lang="ru" data-tanba="dark">
 <head>
 <meta charset="utf-8">
-<title>Tanba, разбор</title>
+<title data-i18n="triage.title">Tanba, разбор</title>
 <link rel="stylesheet" href="tanba.css">
 <!-- Панель отбора и выбор тега общие с библиотекой, стили лежат там -->
 <link rel="stylesheet" href="library.css">
@@ -39,21 +39,25 @@
   <!-- Панель отбора, та же что в библиотеке. Здесь она просеивает приём:
        на сотне файлов найти нужный глазами уже не выходит. -->
   <div class="pick">
-    <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор">
+    <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор"
+            data-i18n-title="common.pick.reset">
       <svg class="ic"><use href="#i-reset"></use></svg>
     </button>
-    <button class="pill pill-add" id="add" title="Добавить тег в отбор">
+    <button class="pill pill-add" id="add" title="Добавить тег в отбор"
+            data-i18n-title="common.pick.addTag">
       <svg class="ic"><use href="#i-plus"></use></svg>
     </button>
     <div class="seg" id="mode">
-      <button data-mode="and" title="Файл должен иметь все выбранные теги">И</button>
-      <button data-mode="or" title="Файлу хватит любого из выбранных тегов">ИЛИ</button>
+      <button data-mode="and" title="Файл должен иметь все выбранные теги"
+              data-i18n="common.pick.mode.all" data-i18n-title="common.pick.mode.all.hint">И</button>
+      <button data-mode="or" title="Файлу хватит любого из выбранных тегов"
+              data-i18n="common.pick.mode.any" data-i18n-title="common.pick.mode.any.hint">ИЛИ</button>
     </div>
     <div class="pick-scope" id="scope"></div>
 
     <label class="find">
       <svg class="ic"><use href="#i-search"></use></svg>
-      <input id="q" placeholder="имя файла" spellcheck="false">
+      <input id="q" placeholder="имя файла" data-i18n-placeholder="common.pick.search" spellcheck="false">
     </label>
   </div>
 
@@ -62,27 +66,27 @@
        Разметка повторяется в library.html, как повторяется и панель отбора
        над ней: у экранов общие стили, но свои страницы. -->
   <div class="cmd">
-    <button class="cbtn" data-act="open" title="Открыть">
+    <button class="cbtn" data-act="open" title="Открыть" data-i18n-title="common.cmd.open">
       <svg class="ic"><use href="#i-play"></use></svg></button>
-    <button class="cbtn" data-act="rename" title="Переименовать">
+    <button class="cbtn" data-act="rename" title="Переименовать" data-i18n-title="common.cmd.rename">
       <svg class="ic"><use href="#i-pencil"></use></svg></button>
-    <button class="cbtn" data-act="tags" title="Настроить теги">
+    <button class="cbtn" data-act="tags" title="Настроить теги" data-i18n-title="common.cmd.tags">
       <svg class="ic"><use href="#i-tag"></use></svg></button>
-    <button class="cbtn cbtn-danger" data-act="del" title="Удалить">
+    <button class="cbtn cbtn-danger" data-act="del" title="Удалить" data-i18n-title="common.cmd.delete">
       <svg class="ic"><use href="#i-trash"></use></svg></button>
 
     <div class="cline"></div>
 
     <div class="seg" id="tile">
-      <button data-tile="s" title="Мелкие плитки"><svg class="ic"><use href="#v-s"></use></svg></button>
-      <button data-tile="m" title="Средние плитки"><svg class="ic"><use href="#v-m"></use></svg></button>
-      <button data-tile="l" title="Крупные плитки"><svg class="ic"><use href="#v-l"></use></svg></button>
+      <button data-tile="s" title="Мелкие плитки" data-i18n-title="common.cmd.tile.small"><svg class="ic"><use href="#v-s"></use></svg></button>
+      <button data-tile="m" title="Средние плитки" data-i18n-title="common.cmd.tile.medium"><svg class="ic"><use href="#v-m"></use></svg></button>
+      <button data-tile="l" title="Крупные плитки" data-i18n-title="common.cmd.tile.large"><svg class="ic"><use href="#v-l"></use></svg></button>
     </div>
 
     <span class="grow"></span>
 
-    <button class="cbtn cbtn-wide" id="infoBtn" title="Панель сведений">
-      <svg class="ic"><use href="#i-info"></use></svg><span>Сведения</span>
+    <button class="cbtn cbtn-wide" id="infoBtn" title="Панель сведений" data-i18n-title="common.cmd.details.hint">
+      <svg class="ic"><use href="#i-info"></use></svg><span data-i18n="common.cmd.details">Сведения</span>
     </button>
   </div>
 
@@ -95,15 +99,17 @@
   <footer class="bar">
     <button class="btn btn-primary" id="fileBtn">
       <svg class="ic"><use href="#i-check"></use></svg>
-      Разложить <span class="count" id="fileN">0</span>
+      <span data-i18n="triage.file">Разложить</span> <span class="count" id="fileN">0</span>
     </button>
-    <button class="btn btn-ghost" id="laterBtn" title="Убрать из приёма без тегов, попадут в «Неразобранное»">Отложить</button>
+    <button class="btn btn-ghost" id="laterBtn" title="Убрать из приёма без тегов, попадут в «Неразобранное»"
+            data-i18n="triage.later" data-i18n-title="triage.later.hint">Отложить</button>
     <span class="dim" id="pending"></span>
     <span class="grow"></span>
     <span class="dim" id="hint"></span>
     <span class="dim mono" id="statFiles"></span>
     <span class="dim mono" id="statSize"></span>
-    <button class="btn btn-ghost btn-icon" id="rescan" title="Пересканировать приём">
+    <button class="btn btn-ghost btn-icon" id="rescan" title="Пересканировать приём"
+            data-i18n-title="triage.rescan">
       <svg class="ic"><use href="#i-refresh"></use></svg>
     </button>
   </footer>
@@ -111,13 +117,17 @@
 </div>
 
 <div class="pop" id="pop" hidden>
-  <input id="popQ" placeholder="тег…" spellcheck="false">
+  <input id="popQ" placeholder="тег…" data-i18n-placeholder="common.tagpick.search" spellcheck="false">
   <div class="pop-list" id="popList"></div>
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="drop" id="drop"><div class="zone">Отпусти, заберу в разбор</div></div>
+<div class="drop" id="drop"><div class="zone" data-i18n="common.drop.zone">Отпусти, заберу в разбор</div></div>
 
+<!-- Словарь идёт первым: механика языка читает его сразу, а разметку
+     заполняет уже app.js, когда страница разобрана. -->
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
 <script src="chrome.js"></script>
 <script src="ftype.js"></script>
 <script src="app.js"></script>

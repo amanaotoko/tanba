@@ -2,7 +2,7 @@
 <html lang="ru" data-tanba="dark">
 <head>
 <meta charset="utf-8">
-<title>Tanba, настройки</title>
+<title data-i18n="settings.title">Tanba, настройки</title>
 <link rel="stylesheet" href="tanba.css">
 <link rel="stylesheet" href="library.css">
 <link rel="stylesheet" href="settings.css">
@@ -31,21 +31,21 @@
 
     <!-- ── Версия и обновление ─────────────────────────────────────── -->
     <section class="block">
-      <h2>Обновление</h2>
+      <h2 data-i18n="settings.update.heading">Обновление</h2>
 
       <div class="row">
         <!-- Знак рядом с версией: единственное место, где программа
              представляется по имени, и в этой строке он к месту. -->
         <svg class="brand brand-big"><use href="#t-logo"></use></svg>
         <div class="rt">
-          <div class="rh">Версия <span class="mono" id="ver">…</span></div>
-          <div class="rd" id="upState">Проверяю…</div>
+          <div class="rh"><span data-i18n="settings.update.version">Версия</span> <span class="mono" id="ver">…</span></div>
+          <div class="rd" id="upState" data-i18n="settings.update.checking">Проверяю…</div>
         </div>
         <button class="btn" id="check">
-          <svg class="ic"><use href="#i-refresh"></use></svg>Проверить
+          <svg class="ic"><use href="#i-refresh"></use></svg><span data-i18n="settings.update.check">Проверить</span>
         </button>
         <button class="btn btn-primary" id="apply" hidden>
-          <svg class="ic"><use href="#i-down"></use></svg>Обновить и перезапустить
+          <svg class="ic"><use href="#i-down"></use></svg><span data-i18n="settings.update.apply">Обновить и перезапустить</span>
         </button>
       </div>
 
@@ -58,15 +58,16 @@
 
     <!-- ── Запуск ──────────────────────────────────────────────────── -->
     <section class="block">
-      <h2>Запуск</h2>
+      <h2 data-i18n="settings.startup.heading">Запуск</h2>
 
       <div class="row">
         <div class="rt">
-          <div class="rh">Запускать вместе с Windows</div>
-          <div class="rd">Программа поднимается значком в трее и считает, сколько файлов ждёт разбора.
+          <div class="rh" data-i18n="settings.startup.label">Запускать вместе с Windows</div>
+          <div class="rd" data-i18n="settings.startup.note">Программа поднимается значком в трее и считает, сколько файлов ждёт разбора.
             Окно при этом не открывается.</div>
         </div>
-        <button class="sw" id="startup" aria-label="Запускать вместе с Windows"><span></span></button>
+        <button class="sw" id="startup" data-i18n-aria="settings.startup.label"
+          aria-label="Запускать вместе с Windows"><span></span></button>
       </div>
 
       <div class="row col" id="rowTarget" hidden>
@@ -76,23 +77,36 @@
 
     <!-- ── Оформление ──────────────────────────────────────────────── -->
     <section class="block">
-      <h2>Оформление</h2>
+      <h2 data-i18n="settings.look.heading">Оформление</h2>
 
       <div class="row">
         <div class="rt">
-          <div class="rh">Тема</div>
-          <div class="rd">Запоминается и держится на всех экранах.</div>
+          <div class="rh" data-i18n="settings.look.theme">Тема</div>
+          <div class="rd" data-i18n="settings.look.theme.note">Запоминается и держится на всех экранах.</div>
         </div>
         <div class="seg" id="theme">
-          <button data-theme="dark">Тёмная</button>
-          <button data-theme="light">Светлая</button>
+          <button data-theme="dark" data-i18n="settings.look.theme.dark">Тёмная</button>
+          <button data-theme="light" data-i18n="settings.look.theme.light">Светлая</button>
+        </div>
+      </div>
+
+      <!-- Языки названы каждый на себе самом: человек, который ищет здесь
+           английский, ищет слово English, а не «английский». -->
+      <div class="row">
+        <div class="rt">
+          <div class="rh" data-i18n="settings.look.lang">Язык</div>
+          <div class="rd" data-i18n="settings.look.lang.note">Меняется сразу, на всех экранах и у значка в трее.</div>
+        </div>
+        <div class="seg" id="lang">
+          <button data-lang="ru">Русский</button>
+          <button data-lang="en">English</button>
         </div>
       </div>
     </section>
 
     <!-- ── Хранилище ───────────────────────────────────────────────── -->
     <section class="block">
-      <h2>Хранилище</h2>
+      <h2 data-i18n="settings.storage.heading">Хранилище</h2>
 
       <div class="row">
         <div class="rt">
@@ -100,7 +114,7 @@
           <div class="rd" id="rootNote"></div>
         </div>
         <button class="btn" id="openRoot">
-          <svg class="ic"><use href="#i-folder"></use></svg>Открыть
+          <svg class="ic"><use href="#i-folder"></use></svg><span data-i18n="common.cmd.open">Открыть</span>
         </button>
       </div>
     </section>
@@ -117,6 +131,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
 <script src="chrome.js"></script>
 <script src="settings.js"></script>
 </body>

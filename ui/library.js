@@ -26,12 +26,15 @@ function toggleGroup(name) {
 }
 
 // Заголовок группы кликабельный, шеврон показывает состояние.
-const head = (name, extra = '') =>
-  `<h3 data-collapse="${esc(name)}">${esc(name)}${extra}` +
+// Ключ сворачивания отдельно от заголовка: у групп тегов имя приходит из базы
+// и годится как ключ, а у своих групп заголовок переводится, и свёрнутое
+// не должно разворачиваться от смены языка.
+const head = (name, extra = '', key = name) =>
+  `<h3 data-collapse="${esc(key)}">${esc(name)}${extra}` +
   `<svg class="ic chev"><use href="#i-chev"></use></svg></h3>`;
 
-const grp = (name, inner, extra = '') =>
-  `<div class="group${collapsed.has(name) ? ' closed' : ''}">${head(name, extra)}${inner}</div>`;
+const grp = (name, inner, extra = '', key = name) =>
+  `<div class="group${collapsed.has(key) ? ' closed' : ''}">${head(name, extra, key)}${inner}</div>`;
 const PAGE = 200;
 
 let res = { files: [], total: 0, bytes: 0 };
@@ -81,16 +84,26 @@ async function load(append) {
     const [page, fac] = await Promise.all(jobs);
 
     res = append ? Object.assign({}, page, { files: res.files.concat(page.files) }) : page;
-    if (fac) { facets = fac; indexTags(); }
+    if (fac) { facets = fac; sortFacets(); indexTags(); }
     render();
   } catch (e) {
-    toast('Не удалось получить отбор: ' + e.message, 'err');
+    toast(t('toast.filterFailed', { error: e.message }), 'err');
   }
 }
 
 async function loadSaved() {
   try { saved = await jget('/api/library/saved'); renderPanel(); }
   catch { /* сохранённых может не быть, это не повод шуметь */ }
+}
+
+// База сортирует байтами: вся латиница идёт раньше всей кириллицы, и список
+// тегов на двух языках выглядит перемешанным. Раскладываем на своей стороне,
+// как только пришёл ответ, чтобы дальше все списки шли уже в этом порядке.
+// Порядок групп и видов объектов не трогаем: он задан не именем, а смыслом.
+function sortFacets() {
+  for (const g of facets.groups) g.tags.sort((a, b) => I18N.byName(a.name, b.name));
+  if (facets.formats && facets.formats.items)
+    facets.formats.items.sort((a, b) => I18N.byName(a.name, b.name));
 }
 
 function indexTags() {
@@ -148,19 +161,19 @@ function renderScope() {
   const path = catInfo && catInfo.path || [];
   const crumbs = `
     <span class="pill pill-cat pill-root"${pick.cat ? ' data-goto=""' : ''}
-          title="${pick.cat ? 'Выйти в библиотеку' : 'Библиотека'}">
+          title="${pick.cat ? t('lib.scope.up') : t('lib.scope.root')}">
       <svg class="ic"><use href="#i-lib"></use></svg>
     </span>`
     + path.map(p => `
     <span class="crumb-sep"><svg class="ic"><use href="#i-crumb"></use></svg></span>
     <span class="pill pill-cat${p.id === pick.cat ? ' pill-here' : ''}" data-goto="${p.id}"
-          title="Перейти в «${esc(p.name)}»">${esc(p.name)}</span>`).join('');
+          title="${t('lib.scope.goto', { name: esc(p.name) })}">${esc(p.name)}</span>`).join('');
 
   box.innerHTML = crumbs + pick.tags.map(id => `
-    <span class="pill">${esc(name(id))}<button class="x" data-drop="${id}" title="Убрать тег">
+    <span class="pill">${esc(name(id))}<button class="x" data-drop="${id}" title="${t('scope.removeTag')}">
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('')
     + pick.exts.map(e => `
-    <span class="pill">${esc(e)}<button class="x" data-dropext="${esc(e)}" title="Убрать формат">
+    <span class="pill">${esc(e)}<button class="x" data-dropext="${esc(e)}" title="${t('scope.removeFormat')}">
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('');
 
   box.querySelectorAll('[data-drop]').forEach(el => {
@@ -199,7 +212,7 @@ function renderTree(node, cur, depth = 0) {
 function renderPanel() {
   if (pick.cat) {
     $('panel').innerHTML = catInfo && catInfo.tree
-      ? `<div class="group"><h3>Каталог</h3>${renderTree(catInfo.tree, pick.cat)}</div>`
+      ? `<div class="group"><h3>${t('lib.panel.catalog')}</h3>${renderTree(catInfo.tree, pick.cat)}</div>`
       : '';
     $('panel').querySelectorAll('[data-goto]').forEach(el => {
       el.onclick = () => enterCatalog(+el.dataset.goto);
@@ -209,11 +222,11 @@ function renderPanel() {
 
   const savedBlock = saved.length ? `
     <div class="saved">
-      <h3>Сохранённые отборы</h3>
+      <h3>${t('lib.saved.title')}</h3>
       ${saved.map(s => `
         <div class="saved-row">
           <button class="nm" data-apply="${s.id}" title="${esc(s.name)}">${esc(s.name)}</button>
-          <button class="del" data-del="${s.id}" title="Удалить отбор">
+          <button class="del" data-del="${s.id}" title="${t('lib.saved.del')}">
             <svg class="ic"><use href="#i-trash"></use></svg>
           </button>
         </div>`).join('')}
@@ -234,7 +247,7 @@ function renderPanel() {
           <span class="n mono">${t.count ? num(t.count) : ''}</span>
         </button>`;
       }).join('')}`,
-      g.isMulti ? '' : ' <span class="single">один тег</span>')).join('');
+      g.isMulti ? '' : ` <span class="single">${t('tag.group.single')}</span>`)).join('');
 
   // Формат рисуется тем же блоком, что и группы тегов: снаружи он от них
   // ничем не отличается, только значения берутся из расширений файлов.
@@ -270,8 +283,8 @@ function renderPanel() {
 
   // Дата не тег: она непрерывна, поэтому диапазон, а не список значений.
   // Выпадающий список взят из кита, раздел «Поиск и фильтры».
-  const DATES = { any: 'Любая дата', created: 'Создан', modified: 'Изменён' };
-  const dateBlock = grp('Дата', `
+  const DATES = { any: t('lib.date.any'), created: t('lib.date.created'), modified: t('lib.date.modified') };
+  const dateBlock = grp(t('lib.date.group'), `
       <div class="dd">
         <button class="dd-btn" id="ddDate">
           <svg class="ic"><use href="#i-calendar"></use></svg>
@@ -284,12 +297,20 @@ function renderPanel() {
           </button>`).join('')}</div>` : ''}
       </div>
       <div class="range">
-        <input type="date" id="from" value="${pick.from}" title="с этой даты">
-        <span class="dash">до</span>
-        <input type="date" id="to" value="${pick.to}" title="по эту дату">
-      </div>`);
+        <input type="date" id="from" value="${pick.from}" title="${t('lib.date.from')}">
+        <span class="dash">${t('lib.date.dash')}</span>
+        <input type="date" id="to" value="${pick.to}" title="${t('lib.date.to')}">
+      </div>`, '', 'date');
 
-  $('panel').innerHTML = savedBlock + showBlock + formatBlock + dateBlock + groups;
+  // Тегов ещё нет: панель без единой группы выглядит сломанной, поэтому
+  // говорим то же самое, что и разбор, а не оставляем пустое место.
+  const noTags = facets.groups.length ? '' : `
+    <div class="group">
+      <h3>${t('tags.none.title')}</h3>
+      <p class="dim" style="margin:0">${t('tags.none.note')}</p>
+    </div>`;
+
+  $('panel').innerHTML = savedBlock + showBlock + formatBlock + dateBlock + groups + noTags;
 
   $('panel').querySelectorAll('[data-collapse]').forEach(el => {
     el.onclick = () => toggleGroup(el.dataset.collapse);
@@ -343,12 +364,12 @@ function renderResults() {
     box.innerHTML = `
       <div class="empty">
         <div class="circle"><svg class="ic"><use href="#i-grid"></use></svg></div>
-        <h2>${filtered ? 'Ничего не нашлось' : 'В библиотеке пусто'}</h2>
+        <h2>${filtered ? t('lib.empty.noMatch.title') : t('lib.empty.title')}</h2>
         <p>${filtered
           ? (pick.from || pick.to
-            ? 'Раздвинь диапазон дат, сними лишний тег или переключи И на ИЛИ.'
-            : 'Сними лишний тег или переключи И на ИЛИ, тогда хватит любого из выбранных.')
-          : 'Файлы появятся здесь, когда разложишь то, что лежит в приёме.'}</p>
+            ? t('lib.empty.hintDates')
+            : t('lib.empty.hintTags'))
+          : t('lib.empty.body')}</p>
       </div>`;
     return;
   }
@@ -364,12 +385,12 @@ function renderResults() {
         ${f.kind === 'catalog' ? '' : ftypeBadge(f.ext)}
         ${f.kind === 'catalog' ? ''
           : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
-        ${f.movedTo ? `<span class="away" title="Уехал из хранилища: ${esc(f.movedTo)}">уехал</span>` : ''}
+        ${f.movedTo ? `<span class="away" title="${t('card.movedAway', { path: esc(f.movedTo) })}">${t('card.away')}</span>` : ''}
       </div>
       <div class="name">${esc(f.name)}</div>
     </div>`).join('') + `</div>`
     + (res.files.length < res.total
-      ? `<div class="more"><button class="btn" id="more">Показать ещё ${num(res.total - res.files.length)}</button></div>`
+      ? `<div class="more"><button class="btn" id="more">${t('lib.more', { n: num(res.total - res.files.length) })}</button></div>`
       : '');
 
   // Двойной клик по каталогу входит внутрь, по файлу открывает сам файл,
@@ -391,10 +412,10 @@ function renderResults() {
 /// переносились и рвали высоту рядов. Перевод строки в подсказке задаётся
 /// мнемоникой, обычный \n в значении атрибута не сработает.
 function tip(f) {
-  const tags = (f.tags || []).map(id => name(id)).filter(Boolean);
+  const tags = (f.tags || []).map(id => name(id)).filter(Boolean).sort(I18N.byName);
   const parts = [f.name];
   if (tags.length) parts.push(tags.join(', '));
-  if (f.movedTo) parts.push('Уехал из хранилища: ' + f.movedTo);
+  if (f.movedTo) parts.push(t('card.movedAway', { path: f.movedTo }));
   return esc(parts.join('\n')).replace(/\n/g, '&#10;');
 }
 
@@ -497,13 +518,13 @@ $('q').oninput = () => {
 
 async function reveal(id) {
   try { await jsend('/api/library/reveal', 'POST', { id }); }
-  catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+  catch (e) { toast(t('toast.openFailed', { error: e.message }), 'err'); }
 }
 
 /// Открыть файл тем, чем его открывает система.
 async function openFile(id) {
   try { await jsend('/api/files/open', 'POST', { id }); }
-  catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+  catch (e) { toast(t('toast.openFailed', { error: e.message }), 'err'); }
 }
 
 // ── Сохранённые отборы ─────────────────────────────────────────────────
@@ -524,7 +545,7 @@ async function dropSaved(id) {
     await jsend('/api/library/saved/' + id, 'DELETE');
     await loadSaved();
   } catch (e) {
-    toast('Не удалилось: ' + e.message, 'err');
+    toast(t('toast.deleteFailed', { error: e.message }), 'err');
   }
 }
 
@@ -560,7 +581,7 @@ function fillPop() {
         <span class="nm">${esc(r.t.name)}</span>
         <span class="gr">${esc(r.g.name)}</span>
       </button>`).join('')
-    : `<div class="pop-none">Такого тега нет</div>`;
+    : `<div class="pop-none">${t('common.tagNotFound')}</div>`;
 
   $('popList').querySelectorAll('[data-p]').forEach(el => {
     el.onclick = () => { closePop(); toggleTag(+el.dataset.p); };
@@ -586,8 +607,10 @@ document.addEventListener('mousedown', e => {
   if (!$('pop').hidden && !$('pop').contains(e.target) && e.target.id !== 'add') closePop();
 });
 
+// Проверяем код клавиши, а не букву: в русской раскладке оттуда приходит «л»,
+// и сочетание молча ничего не делало. То же самое с CapsLock, см. picking.js.
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); $('q').focus(); $('q').select(); }
+  if (e.ctrlKey && e.code === 'KeyK') { e.preventDefault(); $('q').focus(); $('q').select(); }
   if (e.key === 'Escape' && document.activeElement === $('q')) { $('q').blur(); }
 });
 
@@ -604,23 +627,21 @@ function toast(text, cls = '') {
 
 const name = id => (tagIx[id] ? tagIx[id].tag.name : '?');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const num = n => (n || 0).toLocaleString('ru-RU');
+// Разделитель тысяч у языков свой, поэтому число форматирует язык, а не мы.
+const num = I18N.num;
 
 function fmtSize(b) {
   if (!b) return '';
-  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  const u = [t('units.b'), t('units.kb'), t('units.mb'), t('units.gb'), t('units.tb')];
   let i = 0;
   while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return (i === 0 ? b : b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
+  // Дробная часть тоже за языком: у русского там запятая, у английского точка.
+  return num(i === 0 ? b : +b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
 }
 
-function plural(n, one, few, many) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b > 1 && b < 5) return few;
-  if (b === 1) return one;
-  return many;
-}
+// Разметку страницы заполняем здесь: словарь и механика подключены выше.
+// Шапка окна заполняет себя сама, она собирается кодом, см. chrome.js.
+I18N.apply();
 
 loadSaved();
 load();

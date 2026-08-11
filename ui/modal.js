@@ -13,13 +13,13 @@ function modalBox(html) {
 }
 
 /// Да или нет. Возвращает true, если согласились.
-function askBox({ title, text, ok = 'Удалить', danger = true }) {
+function askBox({ title, text, ok = t('common.cmd.delete'), danger = true }) {
   return new Promise(resolve => {
     const wrap = modalBox(`
       <h2>${title}</h2>
       ${text ? `<p>${text}</p>` : ''}
       <div class="modal-acts">
-        <button class="btn" data-no>Отмена</button>
+        <button class="btn" data-no>${t('common.cancel')}</button>
         <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-yes>${ok}</button>
       </div>`);
 
@@ -40,9 +40,9 @@ function pickBox({ title, text, items, label = x => x.name, hint = () => '' }) {
     const wrap = modalBox(`
       <h2>${title}</h2>
       ${text ? `<p>${text}</p>` : ''}
-      <input class="name" id="pickq" placeholder="поиск…" spellcheck="false">
+      <input class="name" id="pickq" placeholder="${t('modal.pick.search')}" spellcheck="false">
       <div class="pick-list" id="picklist"></div>
-      <div class="modal-acts"><button class="btn" data-no>Отмена</button></div>`);
+      <div class="modal-acts"><button class="btn" data-no>${t('common.cancel')}</button></div>`);
 
     const box = wrap.querySelector('#picklist');
     const q = wrap.querySelector('#pickq');
@@ -56,7 +56,7 @@ function pickBox({ title, text, items, label = x => x.name, hint = () => '' }) {
               <span class="nm">${label(i)}</span>
               <span class="gr">${hint(i)}</span>
             </button>`).join('')
-        : `<div class="pop-none">Ничего не нашлось</div>`;
+        : `<div class="pop-none">${t('modal.pick.none')}</div>`;
       box.querySelectorAll('[data-n]').forEach(b => {
         b.onclick = () => done(items[+b.dataset.n]);
       });

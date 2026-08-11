@@ -2,7 +2,7 @@
 <html lang="ru" data-tanba="dark">
 <head>
 <meta charset="utf-8">
-<title>Tanba, теги</title>
+<title data-i18n="tags.title">Tanba, теги</title>
 <link rel="stylesheet" href="tanba.css">
 <link rel="stylesheet" href="library.css">
 <link rel="stylesheet" href="tags.css">
@@ -33,7 +33,7 @@
     <span class="grow"></span>
     <label class="find">
       <svg class="ic"><use href="#i-search"></use></svg>
-      <input id="q" placeholder="имя тега" spellcheck="false">
+      <input id="q" placeholder="имя тега" data-i18n-placeholder="tags.search" spellcheck="false">
     </label>
   </div>
 
@@ -48,6 +48,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
 <script src="chrome.js"></script>
 <script src="modal.js"></script>
 <script src="tags.js"></script>

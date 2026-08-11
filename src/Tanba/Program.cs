@@ -83,6 +83,9 @@ InboxMove.Carry(cfg, repo);
 
 var prefs = new Prefs(repo);
 
+// Язык для того, что показывает не окно, а сама программа: значок в трее.
+Words.Use(prefs.Get(Prefs.Lang));
+
 // Пустая база без единого тега бесполезна: вешать нечего. Заводим один
 // маленький набор, и только здесь, при самом создании базы.
 if (freshDb) Seed.Starter(repo, Lang.Pick(prefs.Get(Prefs.Lang)));

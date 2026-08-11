@@ -36,12 +36,10 @@ function render() {
   renderBar();
   renderScope();
 
-  $('pending').textContent = state.pending
-    ? `${state.pending} ${plural(state.pending, 'файл', 'файла', 'файлов')} ждёт`
-    : '';
+  $('pending').textContent = state.pending ? tn(state.pending, 'inbox.pending') : '';
   // Куски разделены расстоянием и насыщенностью, а не точкой между ними.
   const s = state.stats || {};
-  $('statFiles').textContent = `${s.files || 0} в каталоге`;
+  $('statFiles').textContent = t('inbox.stats.files', { n: I18N.num(s.files || 0) });
   $('statSize').textContent = fmtSize(s.bytes || 0);
 
   window.tanbaCmdSync?.();
@@ -116,8 +114,8 @@ function renderFiles() {
     box.innerHTML = `
       <div class="empty">
         <div class="circle"><svg class="ic"><use href="#i-inbox"></use></svg></div>
-        <h2>Разбирать нечего</h2>
-        <p>Папка «Inbox» пуста, всё разложено. Сохраняй туда что угодно, разберёшь потом одной пачкой.</p>
+        <h2>${esc(t('inbox.empty.title'))}</h2>
+        <p>${esc(t('inbox.empty.body'))}</p>
       </div>`;
     return;
   }
@@ -130,9 +128,8 @@ function renderFiles() {
     box.innerHTML = `
       <div class="empty">
         <div class="circle"><svg class="ic"><use href="#i-search"></use></svg></div>
-        <h2>Под отбор ничего не подошло</h2>
-        <p>В приёме ${state.inbox.length} ${plural(state.inbox.length, 'файл', 'файла', 'файлов')},
-           но ни один не совпал. Сбрось отбор, чтобы увидеть всё.</p>
+        <h2>${esc(t('inbox.noMatch.title'))}</h2>
+        <p>${esc(tn(state.inbox.length, 'inbox.noMatch.body'))}</p>
       </div>`;
     return;
   }
@@ -171,7 +168,7 @@ function renderFiles() {
   box.querySelectorAll('.card').forEach(el => {
     el.ondblclick = async () => {
       try { await api('/api/files/open', { id: +el.dataset.id }); }
-      catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+      catch (e) { toast(t('toast.openFailed', { error: e.message }), 'err'); }
     };
   });
 }
@@ -199,23 +196,28 @@ function renderSide() {
   sideKey = key;
 
   const n = sel.size;
-  const top = n
-    ? `<div class="dim">Выделено: ${n} ${plural(n, 'файл', 'файла', 'файлов')}</div>`
-    : `<div class="dim">Выдели файлы, чтобы вешать теги</div>`;
+  // Ни одного тега: звать выделять файлы бессмысленно, вешать на них нечего.
+  // Панель молчала бы пустым местом, поэтому вместо приглашения выделять
+  // говорим, где теги заводятся, и уводим туда же.
+  const top = !state.groups.some(g => g.tags.length)
+    ? `<div class="dim">${esc(t('tags.none.title'))}</div>` +
+      `<a class="btn btn-ghost" href="tags.html">${esc(t('tags.none.note'))}</a>`
+    : n ? `<div class="dim">${esc(tn(n, 'inbox.side.selected'))}</div>`
+    : `<div class="dim">${esc(t('inbox.side.hint'))}</div>`;
 
   $('side').innerHTML = top + state.groups.map(g => `
     <div class="group${collapsed.has(g.name) ? ' closed' : ''}" data-group="${g.id}">
-      <h3 data-collapse="${esc(g.name)}">${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}<svg class="ic chev"><use href="#i-chev"></use></svg></h3>
+      <h3 data-collapse="${esc(g.name)}">${esc(g.name)}${g.isMulti ? '' : ` <span class="single">${esc(t('tag.group.single'))}</span>`}<svg class="ic chev"><use href="#i-chev"></use></svg></h3>
       ${g.tags.map(t => `
         <button class="tag" data-tag="${t.id}" data-state="${t.state}" ${n ? '' : 'disabled'}>
           <span class="box ${t.state}${g.isMulti ? '' : ' radio'}">
             <svg class="ic"><use href="#${t.state === 'partial' ? 'i-minus' : 'i-check'}"></use></svg>
           </span>
           <span class="lbl">${esc(t.name)}</span>
-          <span class="n">${t.count || ''}</span>
+          <span class="n">${t.count ? I18N.num(t.count) : ''}</span>
         </button>`).join('')}
       <div class="newtag">
-        <input placeholder="новый тег…" data-newtag="${g.id}">
+        <input placeholder="${esc(t('common.tag.new'))}" data-newtag="${g.id}">
       </div>
     </div>`).join('');
 
@@ -240,10 +242,10 @@ function renderBar() {
   // Разложить можно только размеченное, иначе файлы утекают в каталог молча.
   const ready = state.inbox.filter(f => f.tags.length).length;
   const bare = state.inbox.length - ready;
-  $('fileN').textContent = ready;
+  $('fileN').textContent = I18N.num(ready);
   $('fileBtn').disabled = !ready;
   $('laterBtn').disabled = !bare;
-  $('hint').textContent = bare ? `${bare} ${plural(bare, 'файл', 'файла', 'файлов')} без тегов` : '';
+  $('hint').textContent = bare ? tn(bare, 'inbox.bar.untagged') : '';
 }
 
 // ── Действия ───────────────────────────────────────────────────────────
@@ -260,13 +262,15 @@ $('fileBtn').onclick = async () => {
   if (!ids.length) return;
   const r = await api('/api/file', { fileIds: ids, allowUntagged: false });
   sel.clear();
-  const parts = [`Разложено: ${r.moved}`];
-  if (r.merged) parts.push(`дубликатов слито: ${r.merged}`);
+  const parts = [t('toast.filed', { n: I18N.num(r.moved) })];
+  if (r.merged) parts.push(t('toast.filed.merged', { n: I18N.num(r.merged) }));
 
   // Ошибку надо назвать, а не покрасить. Раньше список r.errors только менял
   // цвет тоста, и человек видел красное «Разложено: 39», не зная, что с сороковым.
   const bad = r.errors || [];
-  toast(bad.length ? bad[0] + (bad.length > 1 ? ` и ещё ${bad.length - 1}` : '') : parts.join(', '),
+  toast(bad.length
+          ? bad[0] + (bad.length > 1 ? ' ' + t('toast.andMore', { n: I18N.num(bad.length - 1) }) : '')
+          : parts.join(', '),
         bad.length ? 'err' : '');
   await load();
 };
@@ -276,7 +280,7 @@ $('laterBtn').onclick = async () => {
   if (!ids.length) return;
   const r = await api('/api/file', { fileIds: ids, allowUntagged: true });
   sel.clear();
-  toast(`Отложено без тегов: ${r.moved}, ищи в «Неразобранном»`);
+  toast(t('toast.filedUntagged', { n: I18N.num(r.moved) }));
   await load();
 };
 
@@ -312,10 +316,10 @@ function renderScope() {
   // Значок раздела в начале, как в библиотеке и как в проводнике. Выходить
   // отсюда некуда, поэтому он просто метка места и не нажимается.
   box.innerHTML = `
-    <span class="pill pill-cat pill-root" title="Приём">
+    <span class="pill pill-cat pill-root" title="${esc(t('inbox.scope.root'))}">
       <svg class="ic"><use href="#i-inbox"></use></svg>
     </span>` + query.tags.map(id => `
-    <span class="pill">${esc(nameOf(id))}<button class="x" data-drop="${id}" title="Убрать тег">
+    <span class="pill">${esc(nameOf(id))}<button class="x" data-drop="${id}" title="${esc(t('scope.removeTag'))}">
       <svg class="ic"><use href="#i-x"></use></svg></button></span>`).join('');
   box.querySelectorAll('[data-drop]').forEach(el => {
     el.onclick = () => toggleQueryTag(+el.dataset.drop);
@@ -369,7 +373,7 @@ function fillPop() {
         <span class="nm">${esc(r.t.name)}</span>
         <span class="gr">${esc(r.g.name)}</span>
       </button>`).join('')
-    : `<div class="pop-none">Такого тега нет</div>`;
+    : `<div class="pop-none">${esc(t('common.tagNotFound'))}</div>`;
 
   $('popList').querySelectorAll('[data-p]').forEach(el => {
     el.onclick = () => { closePop(); toggleQueryTag(+el.dataset.p); };
@@ -415,7 +419,7 @@ addEventListener('drop', e => {
   e.preventDefault();
   dragDepth = 0;
   $('drop').classList.remove('on');
-  toast('Пока клади файлы в папку «Inbox», приём перетаскиванием на подходе');
+  toast(t('toast.dropNotYet'));
 });
 
 // ── Мелочи ─────────────────────────────────────────────────────────────
@@ -433,20 +437,15 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 function fmtSize(b) {
   if (!b) return '';
-  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  const u = [t('units.b'), t('units.kb'), t('units.mb'), t('units.gb'), t('units.tb')];
   let i = 0;
   while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return (i === 0 ? b : b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
+  return I18N.num(i === 0 ? b : b.toFixed(b < 10 ? 1 : 0)) + ' ' + u[i];
 }
 
-function plural(n, one, few, many) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b > 1 && b < 5) return few;
-  if (b === 1) return one;
-  return many;
-}
-
+// Разметку заполняем до первого запроса: страница уже разобрана, и человек
+// видит её на своём языке, не дожидаясь ответа сервера.
+I18N.apply();
 load();
 
 // Про пополнение приёма извне программа узнаёт от наблюдателя за папкой

@@ -62,18 +62,18 @@ async function cmdAct(act) {
       return cmdDelete(list, one);
     }
   } catch (e) {
-    toast('Не вышло: ' + e.message, 'err');
+    toast(t('toast.actionFailed', { error: e.message }), 'err');
   }
 }
 
 function cmdRename(file) {
   const wrap = modalBox(`
-    <h2>Переименовать</h2>
-    <p>Расширение остаётся прежним, менять его вручную не нужно.</p>
+    <h2>${t('common.cmd.rename')}</h2>
+    <p>${t('rename.body')}</p>
     <input class="name" value="${esc(file.name.replace(/\.[^.]+$/, ''))}" spellcheck="false">
     <div class="modal-acts">
-      <button class="btn" data-no>Отмена</button>
-      <button class="btn btn-primary" data-yes>Переименовать</button>
+      <button class="btn" data-no>${t('common.cancel')}</button>
+      <button class="btn btn-primary" data-yes>${t('common.cmd.rename')}</button>
     </div>`);
 
   const input = wrap.querySelector('.name');
@@ -89,8 +89,8 @@ function cmdRename(file) {
         : await csend('/api/files/rename', 'POST', { id: file.id, name: nm });
       shut();
       await cmd().reload?.();
-      toast('Переименовано');
-    } catch (e) { toast('Не вышло: ' + e.message, 'err'); }
+      toast(t('toast.renamed'));
+    } catch (e) { toast(t('toast.actionFailed', { error: e.message }), 'err'); }
   };
 
   input.onkeydown = e => { if (e.key === 'Enter') save(); };
@@ -106,11 +106,10 @@ async function cmdTags(list) {
   const st0 = await csend('/api/files/tagstates?ids=' + list.join(','), 'GET');
 
   const wrap = modalBox(`
-    <h2>Теги</h2>
-    <p>Выделено объектов: ${list.length}. Промежуточная галочка означает,
-       что тег стоит не у всех.</p>
+    <h2>${t('tagsdlg.title')}</h2>
+    <p>${t('tagsdlg.body', { sel: tn(list.length, 'tagsdlg.count') })}</p>
     <div class="modal-groups" id="mg"></div>
-    <div class="modal-acts"><button class="btn btn-primary" data-no>Готово</button></div>`);
+    <div class="modal-acts"><button class="btn btn-primary" data-no>${t('common.done')}</button></div>`);
 
   const shut = () => { wrap.remove(); document.removeEventListener('keydown', bye); };
   const bye = e => { if (e.key === 'Escape') shut(); };
@@ -118,13 +117,13 @@ async function cmdTags(list) {
   const draw = st => {
     wrap.querySelector('#mg').innerHTML = st.groups.map(g => `
       <div class="group">
-        <h3 style="cursor:default">${esc(g.name)}${g.isMulti ? '' : ' <span class="single">один тег</span>'}</h3>
-        ${g.tags.map(t => `
-          <button class="tag" data-tag="${t.id}" data-state="${t.state}">
-            <span class="box ${t.state}${g.isMulti ? '' : ' radio'}">
-              <svg class="ic"><use href="#${t.state === 'partial' ? 'i-minus' : 'i-check'}"></use></svg>
+        <h3 style="cursor:default">${esc(g.name)}${g.isMulti ? '' : ` <span class="single">${t('tag.group.single')}</span>`}</h3>
+        ${g.tags.map(tag => `
+          <button class="tag" data-tag="${tag.id}" data-state="${tag.state}">
+            <span class="box ${tag.state}${g.isMulti ? '' : ' radio'}">
+              <svg class="ic"><use href="#${tag.state === 'partial' ? 'i-minus' : 'i-check'}"></use></svg>
             </span>
-            <span class="lbl">${esc(t.name)}</span>
+            <span class="lbl">${esc(tag.name)}</span>
           </button>`).join('')}
       </div>`).join('');
 
@@ -148,17 +147,16 @@ async function cmdTags(list) {
 async function cmdDelete(list, one) {
   const ok = await askBox({
     title: one
-      ? `Удалить «${esc(one.name)}»?`
-      : `Удалить ${list.length} ${plural(list.length, 'файл', 'файла', 'файлов')}?`,
-    text: 'Уйдёт в корзину Windows, насовсем не стирается. Достанешь обратно, ' +
-          'и файл вернётся вместе со всеми тегами.',
+      ? t('del.one.title', { name: esc(one.name) })
+      : tn(list.length, 'del.many.title'),
+    text: t('del.body'),
   });
   if (!ok) return;
 
   const r = await csend('/api/files/delete', 'POST', { ids: list });
   await cmd().reload?.();
-  toast(r.errors?.length ? 'Ошибки: ' + r.errors.join('; ')
-                         : `Удалено в корзину: ${r.deleted}`,
+  toast(r.errors?.length ? t('toast.errors', { list: r.errors.join('; ') })
+                         : t('toast.deleted', { n: I18N.num(r.deleted) }),
         r.errors?.length ? 'err' : '');
 }
 
@@ -191,10 +189,7 @@ function setInfo(on) {
 /// годы спустя. «Добавлен» ушёл по той же причине: это факт про программу.
 function cmdDate(sec) {
   if (!sec) return '';
-  return new Date(sec * 1000).toLocaleDateString('ru-RU',
-    { day: '2-digit', month: '2-digit', year: 'numeric' })
-    + ', ' + new Date(sec * 1000).toLocaleTimeString('ru-RU',
-    { hour: '2-digit', minute: '2-digit' });
+  return I18N.date(sec) + ', ' + I18N.time(sec);
 }
 
 const row = (k, v) => v ? `<div class="irow"><span class="ik">${k}</span><span class="iv">${v}</span></div>` : '';
@@ -205,7 +200,7 @@ function drawInfo() {
   const list = (s.selected && s.selected()) || [];
 
   if (!list.length) {
-    cinfo.innerHTML = `<div class="inone">Ничего не выделено.<br>Выбери файл, и здесь будет всё, что о нём известно.</div>`;
+    cinfo.innerHTML = `<div class="inone">${t('info.empty')}<br>${t('info.emptyHint')}</div>`;
     return;
   }
 
@@ -214,10 +209,10 @@ function drawInfo() {
     const bytes = rows.reduce((n, f) => n + (f.size || 0), 0);
     cinfo.innerHTML = `
       <div class="ihead">
-        <div class="iname">${num2(list.length)} ${plural(list.length, 'объект', 'объекта', 'объектов')}</div>
+        <div class="iname">${tn(list.length, 'info.items')}</div>
       </div>
-      ${row('Размер', bytes ? fmtSize(bytes) : '')}
-      ${row('Форматы', [...new Set(rows.map(f => f.ext).filter(Boolean))].join(', '))}`;
+      ${row(t('info.size'), bytes ? fmtSize(bytes) : '')}
+      ${row(t('info.formats'), [...new Set(rows.map(f => f.ext).filter(Boolean))].join(', '))}`;
     return;
   }
 
@@ -235,21 +230,18 @@ function drawInfo() {
              onload="this.classList.add('ok')" onerror="this.remove()">`}
     </div>
     <div class="ihead"><div class="iname">${esc(f.name)}</div></div>
-    ${row('Тип', isCat ? 'Каталог' : (f.ext ? f.ext.toUpperCase() : 'без расширения'))}
-    ${row(isCat ? 'Внутри' : 'Размер',
-          isCat ? (f.count || 0) + ' ' + plural(f.count || 0, 'объект', 'объекта', 'объектов')
-                : (f.size ? fmtSize(f.size) : ''))}
-    ${row('Изменён', cmdDate(f.modifiedAt))}
-    ${f.movedTo ? `<div class="iwarn">Уехал из хранилища: ${esc(f.movedTo)}</div>` : ''}
+    ${row(t('info.type'), isCat ? t('info.type.catalog')
+                                : (f.ext ? f.ext.toLocaleUpperCase('en') : t('info.type.noExt')))}
+    ${isCat
+      ? row(t('info.inside'), tn(f.count || 0, 'info.items'))
+      : row(t('info.size'), f.size ? fmtSize(f.size) : '')}
+    ${row(t('info.modified'), cmdDate(f.modifiedAt))}
+    ${f.movedTo ? `<div class="iwarn">${t('info.movedAway', { path: esc(f.movedTo) })}</div>` : ''}
     ${tags.length
-      ? `<div class=" itags-h">Теги</div>
-         <div class="itags">${tags.map(t => `<span class="itag">${esc(t)}</span>`).join('')}</div>`
-      : `<div class="itags-h dim">Тегов нет</div>`}`;
+      ? `<div class=" itags-h">${t('info.tags')}</div>
+         <div class="itags">${tags.map(tag => `<span class="itag">${esc(tag)}</span>`).join('')}</div>`
+      : `<div class="itags-h dim">${t('info.noTags')}</div>`}`;
 }
-
-/// Разделитель разрядов. Своего num на экране разбора нет, а тысячи файлов
-/// без него читаются плохо.
-const num2 = n => (n || 0).toLocaleString('ru-RU');
 
 document.getElementById('infoBtn')?.addEventListener('click', () => setInfo(!infoOn));
 
