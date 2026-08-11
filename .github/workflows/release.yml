@@ -62,6 +62,9 @@ jobs:
           --token ${{ secrets.GITHUB_TOKEN }}
           -o build/releases
 
+      # The icon has to be passed here as well as being embedded in the exe.
+      # Velopack makes the installer and the shortcuts itself, and it has
+      # nowhere else to take an icon from: without this they come out blank.
       - name: Pack
         run: >
           vpk pack
@@ -72,6 +75,7 @@ jobs:
           -o build/releases
           --packTitle Tanba
           --packAuthors "Amanbek Shaimardan"
+          --icon assets/tanba.ico
 
       # vpk creates the release as a draft unless --publish is given.
       - name: Upload

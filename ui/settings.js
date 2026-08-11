@@ -121,8 +121,9 @@ $('apply').onclick = async () => {
   watchInstall();
 };
 
-// Установка завершает процесс, поэтому признак успеха здесь это оборвавшееся
-// соединение. Пока сервер отвечает, обновление либо качается, либо не задалось.
+// Установка заменяет процесс целиком, вместе с этим окном. Поэтому пока
+// сервер отвечает, обновление либо качается, либо не задалось, и разницу
+// показывает поле ошибки.
 function watchInstall() {
   const timer = setInterval(async () => {
     try {
@@ -135,10 +136,43 @@ function watchInstall() {
       }
     } catch (e) {
       clearInterval(timer);
-      document.body.innerHTML =
-        '<div class="empty"><h2>Обновляюсь</h2><p>Окно откроется заново само.</p></div>';
+      waitForNewVersion();
     }
   }, 1500);
+}
+
+/// Соединение оборвалось. Само по себе это ничего не доказывает: так же
+/// выглядит и упавшая программа, а раньше мы в обоих случаях писали
+/// «обновляюсь» и оставляли человека перед надписью, которая уже никогда
+/// не сменится. Успех здесь один: по тому же адресу отзовётся новая версия.
+function waitForNewVersion() {
+  say('Обновляюсь', 'Окно откроется заново само.');
+
+  let left = 60;
+  const back = setInterval(async () => {
+    try {
+      await send('GET', '/api/settings');
+      clearInterval(back);
+      location.reload();
+    } catch (e) {
+      if (--left > 0) return;
+      clearInterval(back);
+      say('Обновление не установилось',
+          'Программа так и не отозвалась. Закрой окно и запусти Tanba заново.');
+    }
+  }, 1000);
+}
+
+/// Заглушка на весь экран: заголовок и строка под ним.
+function say(head, note) {
+  const box = document.createElement('div');
+  box.className = 'empty';
+  const h = document.createElement('h2');
+  h.textContent = head;
+  const p = document.createElement('p');
+  p.textContent = note;
+  box.append(h, p);
+  document.body.replaceChildren(box);
 }
 
 // ── Источник ────────────────────────────────────────────────────────────
