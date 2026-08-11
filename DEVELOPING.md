@@ -26,6 +26,12 @@ first run the program creates its folders and applies `schema.sql`.
 
 A running copy holds the executable open, so stop it before building.
 
+The program is a windowed executable, so there is no console beside its window
+and `Console.WriteLine` has nowhere obvious to go. It goes to
+`%LocalAppData%\Tanba\tanba.log`, timestamped, with one previous copy kept as
+`.log.old` once it passes a megabyte. Start it from a terminal and it attaches
+to that terminal as well, which is what makes `--no-window` usable.
+
 ## Layout
 
 ```

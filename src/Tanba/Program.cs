@@ -15,7 +15,9 @@ using Velopack;
 // а обращение к диску S: там ещё и упало бы, потому что его может не быть.
 VelopackApp.Build().Run();
 
-Console.OutputEncoding = System.Text.Encoding.UTF8;
+// Сразу после него и до всего остального: с этого места всё, что программа
+// говорит через Console, уходит в файл, см. Log.cs. Своего окна у неё нет.
+Log.Start();
 
 var toTray = args.Contains(Args.Tray);
 
