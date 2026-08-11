@@ -36,11 +36,17 @@ public sealed class Config
     /// Служебные папки: сканер никогда не считает их содержимым каталога.
     public string[] ServiceDirs => [Store, Versions, Thumbs, Meta];
 
-    public static Config Load()
+    /// <summary>
+    /// Корень хранилища: переменная окружения, потом выбранное человеком.
+    /// Возвращает null, если место ещё не выбрано: тогда программа показывает
+    /// экран выбора, а не догадывается. Раньше здесь стояло S:\, и это была
+    /// настройка под одну машину, зашитая в код.
+    /// </summary>
+    public static Config? Load()
     {
         var root = Environment.GetEnvironmentVariable("TANBA_ROOT");
-        if (string.IsNullOrWhiteSpace(root)) root = @"S:\";
-        return new Config(root);
+        if (string.IsNullOrWhiteSpace(root)) root = RootStore.Read();
+        return string.IsNullOrWhiteSpace(root) ? null : new Config(root);
     }
 
     /// <summary>Создаёт структуру папок. Идемпотентно, можно звать каждый запуск.</summary>

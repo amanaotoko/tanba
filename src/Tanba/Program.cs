@@ -35,10 +35,21 @@ var cfg = Config.Load();
 
 // При запуске вместе с Windows диск может быть ещё не подключён, поэтому ждём.
 // Терпения даём больше именно в этом режиме: человек в этот момент не смотрит.
-if (!await WaitForRoot(cfg, toTray ? TimeSpan.FromMinutes(3) : TimeSpan.FromSeconds(10)))
+if (cfg is not null &&
+    !await WaitForRoot(cfg, toTray ? TimeSpan.FromMinutes(3) : TimeSpan.FromSeconds(10)))
 {
-    Fail($"Хранилище недоступно: {cfg.Root}\n\nПодключи диск и запусти Tanba снова.");
-    return;
+    Console.Error.WriteLine($"Хранилище недоступно: {cfg.Root}");
+    cfg = null;
+}
+
+// Места нет или оно не отозвалось: спрашиваем, а не выходим с сообщением
+// об ошибке. Раньше здесь был тупик: окошко «подключи диск и запусти снова»
+// и конец, даже если человек хотел просто выбрать другое место.
+if (cfg is null)
+{
+    cfg = await Setup.Ask(Config.Load()?.Root, 5577);
+    if (cfg is null) { Console.WriteLine("Место не выбрано, выходим."); return; }
+    Console.WriteLine($"Выбрано хранилище: {cfg.Root}");
 }
 
 cfg.EnsureLayout();

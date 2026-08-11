@@ -1,0 +1,110 @@
+/* Первый запуск: пять шагов в одном окне, кнопки внизу.
+   Раскладка по макету Claude Design, «Tanba Первый запуск». */
+
+body{overflow:hidden}
+
+/* Кнопки и панели объявлены через display, и обычный hidden их не прячет:
+   у атрибута приоритет стиля браузера, а он ниже нашего. */
+[hidden]{display:none !important}
+
+.wiz{display:flex;flex-direction:column;height:100vh}
+
+/* Всё содержимое шага стоит по центру окна по высоте. Шагов немного и они
+   короткие, а прижатые к верху они висели в пустоте: под ними оставалась
+   треть окна ни с чем. */
+.pane{flex:1;min-height:0;overflow:auto;padding:24px 28px;
+  display:flex;flex-direction:column;justify-content:center}
+.pane[hidden]{display:none}
+/* Приветствие и «готово» ещё и по горизонтали, у них нет левого края */
+.pane.mid{align-items:center;gap:18px;padding:0 60px}
+
+.pane h1{margin:0 0 3px;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.01em}
+.pane .sub{margin:0 0 18px;color:var(--t2);font-size:13px;line-height:18px}
+.cap{margin:0 0 8px;color:var(--t3);font-size:11px;line-height:14px}
+
+/* ── Приветствие и готово ───────────────────────────────────────────── */
+
+.mark{width:76px;height:76px;fill:var(--t1);stroke:none}
+.hello{display:flex;flex-direction:column;align-items:center;gap:5px}
+.hname{font-size:26px;line-height:32px;font-weight:600;letter-spacing:-.02em}
+.hver{color:var(--t3);font-size:12px;line-height:16px}
+.hlead{margin:0;max-width:440px;text-align:center;
+  color:var(--t2);font-size:15px;line-height:22px}
+
+.bigcheck{width:56px;height:56px;border-radius:999px;background:var(--a2);color:var(--ink);
+  display:flex;align-items:center;justify-content:center}
+.bigcheck .ic{font-size:28px;stroke-width:2.5}
+
+/* ── Где держать архив ──────────────────────────────────────────────── */
+
+.pathrow{display:flex;gap:8px;margin-bottom:10px}
+/* Обводка поля несёт то же состояние, что и приговор ниже: глаз ловит её
+   первой, ещё не прочитав строку. */
+.pathbox{flex:1;min-width:0;display:flex;align-items:center;gap:9px;
+  height:36px;padding:0 10px;border-radius:8px;background:var(--s3);
+  outline:1.5px solid transparent}
+.pathbox .ic{font-size:16px;color:var(--t2)}
+.pathbox input{flex:1;min-width:0;border:none;background:none;outline:none;
+  font-family:"Cascadia Mono",Consolas,monospace;font-size:14px;color:var(--t1)}
+.pathbox input::placeholder{color:var(--t3);font-family:inherit}
+.pathbox.ok{outline-color:var(--a1)}
+.pathbox.warn{outline-color:var(--warn)}
+.pathbox.bad{outline-color:var(--err)}
+.pathrow .btn{height:36px}
+
+/* Приговор папке. Кружок несёт цвет, строка несёт смысл, справа число.
+   Заливки на всю ширину нет намеренно: она читается как ошибка даже там,
+   где всё хорошо. */
+.verdict{display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:9px;background:var(--s2)}
+.vmark{width:24px;height:24px;border-radius:999px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--s4);color:var(--t2)}
+.vmark .ic{font-size:14px;stroke-width:2.25}
+.verdict.tanba .vmark{background:var(--ok);color:var(--ink)}
+.verdict.foreign .vmark{background:var(--warn);color:var(--ink)}
+.verdict.bad .vmark{background:var(--err);color:var(--ink)}
+.vtext{font-size:13px;line-height:18px}
+.vmeta{margin-left:auto;color:var(--t2);font-size:12px;line-height:16px;flex:none}
+
+.willmake{margin-top:12px;padding:12px;border-radius:9px;background:var(--s1)}
+.willmake .lines{display:flex;flex-direction:column;gap:3px;
+  color:var(--t2);font-size:13px;line-height:20px}
+
+/* ── Как запускать ──────────────────────────────────────────────────── */
+
+.opt{display:flex;align-items:flex-start;gap:11px;width:100%;text-align:left;
+  padding:12px;margin-bottom:10px;border-radius:10px;background:var(--s1)}
+.opt:hover{background:var(--s2)}
+.opt .box{width:16px;height:16px;flex:none;margin-top:2px;border-radius:4px;
+  border:1.5px solid var(--bd2);display:flex;align-items:center;justify-content:center;
+  color:var(--ink)}
+.opt .box .ic{font-size:12px;stroke-width:2.5;opacity:0}
+.opt.on .box{background:var(--a1);border-color:var(--a1)}
+.opt.on .box .ic{opacity:1}
+.otext{display:flex;flex-direction:column;gap:3px;min-width:0}
+.oh{font-size:14px;line-height:20px}
+
+/* ── Готовлю ────────────────────────────────────────────────────────── */
+
+/* Прижимать полосу к низу больше нечем и незачем: шаг и так по центру. */
+.prog{margin-top:18px}
+.prow{display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:7px;color:var(--t2);font-size:13px;line-height:18px}
+.ptrack{height:6px;border-radius:999px;background:var(--s3);overflow:hidden}
+.pfill{height:100%;width:0;background:var(--a2);transition:width .3s}
+
+/* ── Низ окна ───────────────────────────────────────────────────────── */
+
+.foot{flex:none;display:flex;align-items:center;gap:10px;
+  padding:14px 20px;background:var(--s1)}
+.dots{display:flex;align-items:center;gap:7px}
+/* Текущий шаг вытянут в полоску, пройденные приглушены: видно, где ты
+   и сколько осталось, без единой цифры. */
+.dots i{width:7px;height:7px;border-radius:999px;background:var(--s4);
+  transition:width .16s}
+.dots i.done{background:var(--t3)}
+.dots i.now{width:18px;background:var(--t1)}
+.steplbl{color:var(--t3);font-size:12px;line-height:16px}
+.foot .btn{height:34px;padding:0 14px}
+.foot .btn-primary{padding:0 16px}
