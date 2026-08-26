@@ -281,13 +281,14 @@ const STRINGS = {
     "toast.merged": ["Объединено с «{name}», перенесено: {n}", "Объединено с «{name}», перенесено: {n}", "Объединено с «{name}», перенесено: {n}"],
     "toast.mergedMarks": ["Объединено, перенесено расстановок: {n}", "Объединено, перенесено расстановок: {n}", "Объединено, перенесено расстановок: {n}"],
     "toast.nothingToMerge": "Объединять не с чем",
+    "toast.needTags": ["{n} выделенный файл без тегов. Проставь теги или сними его из выделения.", "{n} выделенных файла без тегов. Проставь теги или сними их из выделения.", "{n} выделенных файлов без тегов. Проставь теги или сними их из выделения."],
     "toast.openFailed": "Не открылось: {error}",
     "toast.openFailedShort": "Не открылось",
     "toast.renamed": "Переименовано",
     "toast.tagDeleted": "Тег удалён",
 
     // разбор
-    "triage.file": "Разложить",
+    "triage.file": "В библиотеку",
     "triage.later": "Отложить",
     "triage.later.hint": "Убрать из приёма без тегов, попадут в «Неразобранное»",
     "triage.rescan": "Пересканировать приём",
@@ -575,13 +576,14 @@ const STRINGS = {
     "toast.merged": ["Merged into “{name}”, {n} mark moved", "Merged into “{name}”, {n} marks moved"],
     "toast.mergedMarks": ["Merged, {n} tag mark moved", "Merged, {n} tag marks moved"],
     "toast.nothingToMerge": "Nothing to merge with",
+    "toast.needTags": ["{n} selected file has no tags. Tag it, or take it out of the selection.", "{n} selected files have no tags. Tag them, or take them out of the selection."],
     "toast.openFailed": "Could not open: {error}",
     "toast.openFailedShort": "Could not open",
     "toast.renamed": "Renamed",
     "toast.tagDeleted": "Tag deleted",
 
     // разбор
-    "triage.file": "Sort",
+    "triage.file": "Add to library",
     "triage.later": "Set aside",
     "triage.later.hint": "Take them out of the inbox untagged, they land in “Unsorted”",
     "triage.rescan": "Rescan the inbox",

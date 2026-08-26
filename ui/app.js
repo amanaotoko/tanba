@@ -51,6 +51,10 @@ function paintSel() {
   document.querySelectorAll('#files .card').forEach(el => {
     el.classList.toggle('sel', sel.has(+el.dataset.id));
   });
+  // Кнопка внизу теперь показывает размер выделения, а меняется он здесь,
+  // десятки раз в секунду при рамке. Отрисовка полосы это несколько строк
+  // текста, за сервером она не ходит.
+  renderBar();
   window.tanbaCmdSync?.();
 }
 
@@ -239,12 +243,14 @@ function renderSide() {
 }
 
 function renderBar() {
-  // Разложить можно только размеченное, иначе файлы утекают в каталог молча.
-  const ready = state.inbox.filter(f => f.tags.length).length;
-  const bare = state.inbox.length - ready;
-  $('fileN').textContent = I18N.num(ready);
-  $('fileBtn').disabled = !ready;
-  $('laterBtn').disabled = !bare;
+  // Число на кнопке это то, что уедет по нажатию, то есть выделенное.
+  // Раньше оно считало все размеченные файлы приёма, и человек читал его
+  // как «сколько выбрано», а уезжало совсем другое.
+  const bare = state.inbox.length - state.inbox.filter(f => f.tags.length).length;
+  $('fileN').textContent = I18N.num(sel.size);
+  $('fileBtn').disabled = !sel.size;
+  // Откладывать есть что, только если среди выделенного есть неразмеченное.
+  $('laterBtn').disabled = ![...sel].some(id => !state.inbox.find(f => f.id === id)?.tags.length);
   $('hint').textContent = bare ? tn(bare, 'inbox.bar.untagged') : '';
 }
 
@@ -258,8 +264,18 @@ async function toggleTag(tagId, cur) {
 }
 
 $('fileBtn').onclick = async () => {
-  const ids = state.inbox.filter(f => f.tags.length).map(f => f.id);
+  // Уезжает выделенное, и только оно. Раньше здесь стояли все размеченные
+  // файлы приёма: человек выделял пять, а уезжало сорок, включая скрытые
+  // отбором, которых он в тот момент вообще не видел.
+  const ids = [...sel];
   if (!ids.length) return;
+
+  // Файл без тегов в хранилище почти не найти: теги там единственный
+  // указатель. Поэтому не отправляем ничего, пока в выделении есть
+  // неразмеченные, и говорим, сколько их.
+  const bare = ids.filter(id => !state.inbox.find(f => f.id === id)?.tags.length);
+  if (bare.length) { toast(tn(bare.length, 'toast.needTags'), 'err'); return; }
+
   const r = await api('/api/file', { fileIds: ids, allowUntagged: false });
   sel.clear();
   const parts = [t('toast.filed', { n: I18N.num(r.moved) })];
@@ -276,7 +292,11 @@ $('fileBtn').onclick = async () => {
 };
 
 $('laterBtn').onclick = async () => {
-  const ids = state.inbox.filter(f => !f.tags.length).map(f => f.id);
+  // Тоже по выделению: правило на экране должно быть одно. Раньше эта кнопка
+  // уносила из приёма ВСЕ неразмеченные файлы одним нажатием, и после того
+  // как соседняя стала слушаться выделения, она осталась единственным
+  // способом случайно отправить в хранилище сотню файлов.
+  const ids = [...sel].filter(id => !state.inbox.find(f => f.id === id)?.tags.length);
   if (!ids.length) return;
   const r = await api('/api/file', { fileIds: ids, allowUntagged: true });
   sel.clear();
