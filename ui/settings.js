@@ -225,6 +225,11 @@ for (const b of $('lang').children) {
   };
 }
 
+// Адрес зашит на сервере, здесь только просьба его открыть: страница не может
+// подсунуть свой, см. /api/opensite.
+$('site').onclick = () => send('POST', '/api/opensite')
+  .catch(e => toast(String(e.message || e), 'err'));
+
 // ── Настроить заново ────────────────────────────────────────────────────
 
 $('setupAgain').onclick = async () => {

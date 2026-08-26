@@ -31,6 +31,17 @@
 .fld::placeholder{color:var(--t3)}
 .fld:focus{outline:1.5px solid var(--a1)}
 
+/* Подпись автора. Тише всего на экране: не строка настройки и не кнопка
+   действия, поэтому без плашки и без рамки. Адрес выглядит ссылкой, но
+   кнопка: открывать его должна система, а не окно программы, иначе оно
+   уйдёт с интерфейса и вернуться будет некуда. */
+.credit{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
+  padding:4px 2px 2px;color:var(--t3);font-size:12px;line-height:18px}
+.credit .who{color:var(--t2)}
+.credit .site{color:var(--t2);text-decoration:underline;text-underline-offset:2px;
+  text-decoration-color:var(--bd2)}
+.credit .site:hover{color:var(--t1);text-decoration-color:var(--t2)}
+
 /* Переключатель. Лайм тот же, что у главного действия и у значка в трее:
    включено значит «работает», и цвет об этом говорит одинаково везде. */
 .sw{width:42px;height:24px;flex:none;border-radius:999px;background:var(--s4);

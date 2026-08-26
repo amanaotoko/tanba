@@ -8,6 +8,9 @@ namespace Tanba.Web;
 /// </summary>
 public static class SettingsApi
 {
+    /// <summary>Сайт автора, ссылка на него стоит внизу экрана настроек.</summary>
+    private const string AuthorSite = "https://aotokodesign.kz/";
+
     public static void MapSettings(this WebApplication app, Config cfg, Prefs prefs, Updater updater,
         Func<int> pending, Func<bool> scanning)
     {
@@ -85,6 +88,16 @@ public static class SettingsApi
             // просим явно. Окна может не быть вовсе, см. --no-window.
             if (!Host.MainWindow.QuitNow()) life.StopApplication();
             return Results.Ok(new { restarting = true });
+        });
+
+        // Сайт автора с экрана настроек. Адрес зашит здесь, а не приходит из
+        // запроса, по той же причине, что и путь к хранилищу ниже: иначе
+        // страница получила бы возможность открыть что угодно чем угодно.
+        app.MapPost("/api/opensite", () =>
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(AuthorSite) { UseShellExecute = true });
+            return Results.Ok(new { ok = true });
         });
 
         app.MapPost("/api/openroot", () =>

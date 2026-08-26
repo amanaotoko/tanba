@@ -276,19 +276,36 @@ $('fileBtn').onclick = async () => {
   const bare = ids.filter(id => !state.inbox.find(f => f.id === id)?.tags.length);
   if (bare.length) { toast(tn(bare.length, 'toast.needTags'), 'err'); return; }
 
-  const r = await api('/api/file', { fileIds: ids, allowUntagged: false });
-  sel.clear();
-  const parts = [t('toast.filed', { n: I18N.num(r.moved) })];
-  if (r.merged) parts.push(t('toast.filed.merged', { n: I18N.num(r.merged) }));
+  // Запрос долгий: сервер внутри него заново обходит весь приём и переписывает
+  // выгрузку каталога. Пока он идёт, кнопку гасим, иначе второе нажатие уходит
+  // с тем же списком, и половина файлов приезжает уже перенесённой.
+  const btn = $('fileBtn');
+  btn.disabled = true;
+  try {
+    const r = await api('/api/file', { fileIds: ids, allowUntagged: false });
+    sel.clear();
 
-  // Ошибку надо назвать, а не покрасить. Раньше список r.errors только менял
-  // цвет тоста, и человек видел красное «Разложено: 39», не зная, что с сороковым.
-  const bad = r.errors || [];
-  toast(bad.length
-          ? bad[0] + (bad.length > 1 ? ' ' + t('toast.andMore', { n: I18N.num(bad.length - 1) }) : '')
-          : parts.join(', '),
-        bad.length ? 'err' : '');
-  await load();
+    const parts = [t('toast.filed', { n: I18N.num(r.moved) })];
+    if (r.merged) parts.push(t('toast.filed.merged', { n: I18N.num(r.merged) }));
+    // Файл мог лишиться тегов между отрисовкой и нажатием. Сервер такие
+    // пропускает, и молчать об этом нельзя: человек ждал, что уедут все.
+    if (r.skipped) parts.push(t('toast.filed.skipped', { n: I18N.num(r.skipped) }));
+
+    // Ошибку надо назвать, а не покрасить. Раньше список r.errors только менял
+    // цвет тоста, и человек видел красное «Разложено: 39», не зная, что с сороковым.
+    const bad = r.errors || [];
+    toast(bad.length
+            ? bad[0] + (bad.length > 1 ? ' ' + t('toast.andMore', { n: I18N.num(bad.length - 1) }) : '')
+            : parts.join(', '),
+          bad.length ? 'err' : '');
+  } catch (e) {
+    // Раньше упавший запрос не показывал ничего: ни сообщения, ни обновления.
+    // Человек видел прежний экран и не знал, уехало что-нибудь или нет.
+    toast(t('toast.fileFailed', { error: e.message }), 'err');
+  } finally {
+    btn.disabled = false;
+    await load();
+  }
 };
 
 $('laterBtn').onclick = async () => {
@@ -425,7 +442,15 @@ document.addEventListener('mousedown', e => {
 // Escape и Ctrl+A переехали в picking.js: они про выделение, а выделение
 // теперь одно на оба экрана. Здесь остаётся только своё.
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
+
+  // Поверх открытого окна Enter принадлежит окну, а не этой кнопке. Иначе
+  // подтверждение удаления отвечало сразу двумя действиями: файлы уходили
+  // в корзину И то же самое выделение уезжало в библиотеку. Тот же приём
+  // стоит в picking.js, здесь его просто не было.
+  if (document.querySelector('.modal')) return;
+  if (document.querySelector('.ctx')) return;
+
   if (e.key === 'Enter' && !$('fileBtn').disabled) $('fileBtn').click();
 });
 

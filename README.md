@@ -24,10 +24,10 @@ The folder sits at the root of the storage drive and is the only one you ever
 open by hand.
 
 **Sort the pile later, in one go.** The Triage screen shows everything waiting.
-Select a few files, tick the tags that apply to all of them, press Sort. The
-files move into storage and disappear from the pile. Tagging fifty files takes
-about as long as tagging five, because you tag them in batches rather than one
-at a time.
+Select a few files, tick the tags that apply to all of them, press Add to
+library. Those files move into storage and disappear from the pile; nothing you
+did not select is touched. Tagging fifty files takes about as long as tagging
+five, because you tag them in batches rather than one at a time.
 
 **Find things on the Library screen.** Pick tags and the list narrows. Combine
 them with All or Any, add a file format, a date range, or a piece of the file
