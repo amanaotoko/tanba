@@ -54,7 +54,9 @@ public sealed partial class Thumbs(Config cfg)
             // Пока стояли в очереди, сосед мог всё сделать за нас.
             if (IsFresh(cache, src)) return cache;
 
-            using var bmp = Extract(src.FullName, size);
+            // Оболочка первой: когда она справляется, картинка настоящая и
+            // полноразмерная. Не справилась значит смотрим внутрь самого файла.
+            using var bmp = Extract(src.FullName, size) ?? FromInside(src.FullName);
             if (bmp is null)
             {
                 _failedUntil[cache] = Environment.TickCount64 + (long)FailCooldown.TotalMilliseconds;
@@ -163,6 +165,28 @@ public sealed partial class Thumbs(Config cfg)
         }
         finally { Marshal.FinalReleaseComObject(factory); }
     });
+
+    /// <summary>
+    /// Последняя попытка: превью, лежащая внутри самого файла. Пока такая
+    /// есть только у Photoshop, см. PsdPreview.
+    /// </summary>
+    private static Bitmap? FromInside(string path)
+    {
+        if (!PsdPreview.Handles(path)) return null;
+
+        var jpeg = PsdPreview.Read(path);
+        if (jpeg is null) return null;
+
+        try
+        {
+            using var ms = new MemoryStream(jpeg);
+            using var loaded = new Bitmap(ms);
+            // Копия: Bitmap из потока держится за него всю жизнь, а поток мы
+            // закрываем прямо здесь.
+            return new Bitmap(loaded);
+        }
+        catch (ArgumentException) { return null; }   // не картинка, бывает
+    }
 
     /// <summary>
     /// HBITMAP → Bitmap. Эскиз приходит 32-битным с премультиплицированной альфой,
