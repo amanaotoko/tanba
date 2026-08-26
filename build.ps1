@@ -43,6 +43,19 @@ vpk pack -u Tanba -v $Version -p $publish -e Tanba.exe -o $releases `
     --icon (Join-Path $root 'assets\tanba.ico')
 if ($LASTEXITCODE -ne 0) { throw 'Упаковка не удалась' }
 
+# Проверяем, что пакет этой версии действительно появился.
+#
+# Три релиза подряд уехали с чужими файлами именно так: упаковку обрывали
+# на середине, в папке оставались пакеты прошлой версии, и выкладка молча
+# отправляла их. Обрыв случался от `Select-Object -First N` на живом
+# конвейере: он останавливает выполняемую команду, набрав N строк вывода.
+# Никогда не фильтруйте вывод этой сборки конвейером с -First; складывайте
+# его целиком через Out-String, а потом смотрите.
+$full = Join-Path $releases "Tanba-$Version-full.nupkg"
+if (-not (Test-Path $full)) {
+    throw "Пакет $Version не собрался: нет $full. Выкладывать нечего."
+}
+
 Write-Host ''
 Write-Host "Готово. Установщик: $releases\Tanba-win-Setup.exe" -ForegroundColor Green
 Get-ChildItem $releases -Filter "*$Version*" |
