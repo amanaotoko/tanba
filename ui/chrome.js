@@ -34,6 +34,15 @@
            '<span data-i18n="' + s.key + '">' + s.name + '</span></a>';
   }).join('');
 
+  // Клик по вкладке, которая и так открыта, раньше честно перезагружал
+  // страницу: ссылка ведёт на самоё себя, и никто её не гасил. Окно гасло,
+  // шапка собиралась заново, выделение и прокрутка терялись, и всё это ради
+  // нулевого результата. Как в проводнике: ты уже здесь, нажатие пустое.
+  host.addEventListener('click', function (e) {
+    var tab = e.target.closest ? e.target.closest('.tab.on') : null;
+    if (tab) e.preventDefault();
+  });
+
   host.className = 'titlebar';
   host.innerHTML =
     '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +

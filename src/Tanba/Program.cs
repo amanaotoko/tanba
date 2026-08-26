@@ -138,13 +138,17 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 var app = builder.Build();
 app.UseDefaultFiles();
 
-// Кэш статики выключен намеренно. Файлы лежат на этой же машине, экономить
-// нечего, а WebView2 держит свой кэш между запусками: правка стилей уезжала
-// в него и окно показывало вчерашнюю вёрстку, хотя в браузере всё верно.
+// Кэш статики: хранить можно, но каждый раз сверяться с сервером.
+// Раньше стояло no-store, и каждый клик по вкладке заново качал и заново
+// разбирал полтораста килобайт в дюжине последовательных запросов: страница
+// на это время стояла тёмным скелетом. Ставилось no-store против WebView2,
+// который держал вчерашние стили между запусками, но от того лечит и
+// no-cache: файл хранится, а перед показом браузер спрашивает сервер,
+// и на правку тот отвечает свежим файлом вместо 304.
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
-        ctx.Context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate",
+        ctx.Context.Response.Headers.CacheControl = "no-cache",
 });
 
 // ── Состояние экрана разбора ─────────────────────────────────────────────
@@ -160,7 +164,7 @@ app.MapGet("/api/state", (string? sel) =>
     var (files, untagged, bytes) = repo.Stats(c);
 
     // На каком файле какие теги, чтобы карточки показывали свои чипы.
-    var perFile = inbox.ToDictionary(f => f.Id, f => repo.TagsOf(c, f.Id));
+    var perFile = repo.TagsOfMany(c, inbox.Select(f => f.Id).ToList());
 
     return Results.Ok(new
     {
@@ -180,7 +184,7 @@ app.MapGet("/api/state", (string? sel) =>
             // нет намеренно: в Windows это время появления копии, и на всех
             // файлах хранилища оно позже времени изменения.
             modifiedAt = f.Mtime,
-            tags = perFile[f.Id],
+            tags = perFile.GetValueOrDefault(f.Id) ?? [],
         }),
         groups = groups.Select(g => new
         {
@@ -283,13 +287,16 @@ app.MapPost("/api/show", () =>
 // ── Превью ───────────────────────────────────────────────────────────────
 // Эскиз рисует сама Windows руками Corel и Adobe, см. Shell/Thumbs.cs.
 
-app.MapGet("/api/thumb/{id:long}", async (HttpContext http, long id, int? size) =>
+app.MapGet("/api/thumb/{id:long}", async (HttpContext http, long id, int? size, long? v) =>
 {
-    // Без Cache-Control ответ с одним Last-Modified браузер держит у себя
-    // столько, сколько сочтёт нужным, и сервер об этом даже не спрашивает.
-    // Файл при этом мог смениться под тем же именем, а эскиз остался старый.
-    // no-cache не запрещает хранить, а требует спросить: обычно это 304.
-    http.Response.Headers.CacheControl = "no-cache";
+    // Два режима, по наличию версии в адресе. С ?v= (страница подставляет
+    // время изменения файла) адрес меняется вместе с содержимым, и ответ
+    // можно хранить вечно: смена файла означает другой адрес. Без версии,
+    // как у каталогов, чья обложка меняется без смены времени, остаётся
+    // прежнее правило: хранить можно, но каждый раз спрашивать сервер.
+    http.Response.Headers.CacheControl = v is null
+        ? "no-cache"
+        : "public, max-age=31536000, immutable";
 
     FileRow? f;
     long real;

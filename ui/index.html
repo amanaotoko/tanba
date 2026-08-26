@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title data-i18n="triage.title">Tanba, разбор</title>
+<script>
+// Тема до стилей и до первого кадра. Раньше её включал chrome.js в конце
+// страницы, и первый кадр каждого перехода был тёмным: разметка объявляет
+// тёмную, а до скрипта в конце ещё сеть. Здесь мы успеваем всегда.
+try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElement.dataset.tanba = 'light'; } catch (e) { }
+</script>
 <link rel="stylesheet" href="tanba.css">
 <!-- Панель отбора и выбор тега общие с библиотекой, стили лежат там -->
 <link rel="stylesheet" href="library.css">

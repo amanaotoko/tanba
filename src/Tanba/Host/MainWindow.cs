@@ -16,7 +16,12 @@ namespace Tanba.Host;
 public sealed partial class MainWindow : Form
 {
     /// Тот же фон, что у страницы: иначе окно на старте секунду белое.
+    /// Пара к светлой теме ниже: фон обязан совпадать с темой человека,
+    /// иначе между навигациями и при запуске мелькает чужой цвет.
     private const string BackHex = "#0B0B0C";
+    private const string BackHexLight = "#EFEFEB";
+
+    private static string BackFor(bool light) => light ? BackHexLight : BackHex;
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
 
@@ -32,6 +37,7 @@ public sealed partial class MainWindow : Form
     private bool _accept;         // принимаем ли то, что сейчас тащат над окном
     private bool _hideOnce;       // первый показ пропускаем: запуск вместе с Windows
     private bool _quitting;       // выход через меню трея, а не крестик
+    private bool _light;          // тема человека, см. ThemeStore
     private bool _hintShown;
 
     /// Единственное окно процесса. Нужно, чтобы второй запуск не поднимал
@@ -56,14 +62,18 @@ public sealed partial class MainWindow : Form
         // но кнопка на панели задач и переключение по Alt+Tab берут его отсюда.
         try { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!); }
         catch (Exception e) { Console.Error.WriteLine($"Значок окна не прочитался: {e.Message}"); }
-        BackColor = ColorTranslator.FromHtml(BackHex);
+
+        // Тема известна до загрузки страницы, см. ThemeStore: светлый человек
+        // не должен видеть тёмное окно ни при запуске, ни между навигациями.
+        _light = ThemeStore.Light();
+        BackColor = ColorTranslator.FromHtml(BackFor(_light));
 
         // 1440×900, но не больше экрана: на ноутбуке окно иначе вылезает за края.
         var wa = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1440, 900);
         ClientSize = new Size(Math.Min(1440, wa.Width - 40), Math.Min(900, wa.Height - 40));
 
         _web.Dock = DockStyle.Fill;
-        _web.DefaultBackgroundColor = ColorTranslator.FromHtml(BackHex);
+        _web.DefaultBackgroundColor = ColorTranslator.FromHtml(BackFor(_light));
         // Файлы извне ловит форма: странице HTML5-приём отдаёт содержимое, но не пути.
         _web.AllowExternalDrop = false;
         Controls.Add(_web);
@@ -183,7 +193,7 @@ public sealed partial class MainWindow : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
-        PaintFrame(light: false);
+        PaintFrame(_light);
         if (_tray is not null) return;
 
         _tray = new Tray(
@@ -303,8 +313,16 @@ public sealed partial class MainWindow : Form
             case "win.resize": BeginResize(); return;
             case "win.sized": ApplyResize(msg.Edge, msg.Dx, msg.Dy); return;
 
-            // Кромку окна красит система, а тему знает страница.
-            case "theme": PaintFrame(msg.Light); return;
+            // Кромку окна красит система, а тему знает страница. Здесь же
+            // тема запоминается и перекрашивает фон: следующая навигация и
+            // следующий запуск начнутся сразу с правильного цвета.
+            case "theme":
+                _light = msg.Light;
+                ThemeStore.Write(msg.Light);
+                BackColor = ColorTranslator.FromHtml(BackFor(msg.Light));
+                _web.DefaultBackgroundColor = ColorTranslator.FromHtml(BackFor(msg.Light));
+                PaintFrame(msg.Light);
+                return;
         }
 
         if (msg is not { Kind: "dragOut", Ids.Length: > 0 }) return;

@@ -234,6 +234,35 @@ public sealed class Repo(Db db)
         return ins.ScalarLong();
     }
 
+    /// <summary>
+    /// Теги для целой пачки файлов одним запросом. У файла без тегов записи
+    /// в ответе нет, спрашивай через GetValueOrDefault.
+    ///
+    /// Раньше экран разбора собирал то же самое циклом по TagsOf: сто девять
+    /// файлов в приёме означали сто девять запросов на каждое обновление
+    /// состояния, то есть на каждый клик по файлу и каждый поставленный тег.
+    /// </summary>
+    public Dictionary<long, List<long>> TagsOfMany(SqliteConnection c, IReadOnlyList<long> fileIds)
+    {
+        var map = new Dictionary<long, List<long>>();
+        if (fileIds.Count == 0) return map;
+
+        using var cmd = c.Sql($"""
+            SELECT ft.file_id, ft.tag_id
+            FROM file_tags ft JOIN tags t ON t.id = ft.tag_id
+            WHERE ft.file_id IN ({string.Join(',', fileIds)})
+            ORDER BY t.sort_order, t.name
+            """);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            var f = r.GetInt64(0);
+            if (!map.TryGetValue(f, out var l)) map[f] = l = [];
+            l.Add(r.GetInt64(1));
+        }
+        return map;
+    }
+
     // ── СВЯЗЬ ФАЙЛ ↔ ТЕГ ─────────────────────────────────────────────────
 
     /// <summary>Сколько из выделенных файлов имеют каждый тег, это нужно tri-state галочкам.</summary>

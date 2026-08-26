@@ -134,7 +134,7 @@ public static class Library
                     rows.Add(new Row(r.GetInt64(0), r.GetString(1), r.Str(2), r.Num(3), r.GetInt64(4),
                         r.Num(5), r.Num(6), r.GetString(7), r.Num(8), r.GetInt64(9), r.Str(10)));
 
-            var perFile = TagsOfMany(c, rows.Select(x => x.Id).ToList());
+            var perFile = repo.TagsOfMany(c, rows.Select(x => x.Id).ToList());
 
             return Results.Ok(new
             {
@@ -516,27 +516,6 @@ public static class Library
     }
 
     /// <summary>Теги для целой страницы результатов одним запросом.</summary>
-    private static Dictionary<long, List<long>> TagsOfMany(SqliteConnection c, List<long> fileIds)
-    {
-        var map = new Dictionary<long, List<long>>();
-        if (fileIds.Count == 0) return map;
-
-        using var cmd = c.Sql($"""
-            SELECT ft.file_id, ft.tag_id
-            FROM file_tags ft JOIN tags t ON t.id = ft.tag_id
-            WHERE ft.file_id IN ({string.Join(',', fileIds)})
-            ORDER BY t.sort_order, t.name
-            """);
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
-        {
-            var f = r.GetInt64(0);
-            if (!map.TryGetValue(f, out var l)) map[f] = l = [];
-            l.Add(r.GetInt64(1));
-        }
-        return map;
-    }
-
     // ── Разбор параметров ────────────────────────────────────────────────
 
     private static bool IsAnd(string? mode) =>

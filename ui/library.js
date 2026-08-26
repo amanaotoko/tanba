@@ -39,6 +39,7 @@ const PAGE = 200;
 
 let res = { files: [], total: 0, bytes: 0 };
 let facets = { total: 0, root: '', groups: [] };
+let facetsReady = false;   // ответ сервера уже приезжал, пустоте можно верить
 let saved = [];
 let tagIx = {};   // id -> { tag, group }
 
@@ -84,7 +85,7 @@ async function load(append) {
     const [page, fac] = await Promise.all(jobs);
 
     res = append ? Object.assign({}, page, { files: res.files.concat(page.files) }) : page;
-    if (fac) { facets = fac; sortFacets(); indexTags(); }
+    if (fac) { facets = fac; facetsReady = true; sortFacets(); indexTags(); }
     render();
   } catch (e) {
     toast(t('toast.filterFailed', { error: e.message }), 'err');
@@ -304,7 +305,10 @@ function renderPanel() {
 
   // Тегов ещё нет: панель без единой группы выглядит сломанной, поэтому
   // говорим то же самое, что и разбор, а не оставляем пустое место.
-  const noTags = facets.groups.length ? '' : `
+  // Но только когда фасеты действительно приехали: сохранённые отборы
+  // приходят раньше них, и без этой проверки панель на мгновение мигала
+  // ложным «Тегов пока нет» при каждом заходе.
+  const noTags = facets.groups.length || !facetsReady ? '' : `
     <div class="group">
       <h3>${t('tags.none.title')}</h3>
       <p class="dim" style="margin:0">${t('tags.none.note')}</p>
@@ -355,10 +359,17 @@ function renderPanel() {
   });
 }
 
+/// Что сейчас нарисовано. Тот же приём, что у разбора: пока набор карточек
+/// не изменился, сетку не пересобираем. Пересборка через innerHTML заставляла
+/// каждую картинку проявляться заново и сбрасывала прокрутку, а сюда попадает
+/// каждое обновление по возврату фокуса в окно.
+let shownKey = '';
+
 function renderResults() {
   const box = $('results');
 
   if (!res.files.length) {
+    shownKey = '';
     // Пусто по-разному: библиотека и правда пуста или отбор ничего не поймал.
     const filtered = pick.tags.length || pick.exts.length || pick.text || pick.from || pick.to;
     box.innerHTML = `
@@ -374,6 +385,11 @@ function renderResults() {
     return;
   }
 
+  const key = JSON.stringify([pick, res.total,
+    res.files.map(f => [f.id, f.name, f.modifiedAt, f.movedTo, f.count])]);
+  if (key === shownKey && box.querySelector('.grid')) return;
+  shownKey = key;
+
   box.innerHTML = `<div class="grid">` + res.files.map(f => `
     <div class="card${f.kind === 'catalog' ? ' card-cat' : ''}${f.movedTo ? ' card-away' : ''}"
          data-id="${f.id}" data-kind="${f.kind || 'file'}" draggable="true"
@@ -384,7 +400,7 @@ function renderResults() {
           : ftypeIcon(f.ext)}
         ${f.kind === 'catalog' ? '' : ftypeBadge(f.ext)}
         ${f.kind === 'catalog' ? ''
-          : `<img loading="lazy" src="/api/thumb/${f.id}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
+          : `<img loading="lazy" src="/api/thumb/${f.id}${f.modifiedAt ? '?v=' + f.modifiedAt : ''}" alt="" onload="this.classList.add('ok')" onerror="this.remove()">`}
         ${f.movedTo ? `<span class="away" title="${t('card.movedAway', { path: esc(f.movedTo) })}">${t('card.away')}</span>` : ''}
       </div>
       <div class="name">${esc(f.name)}</div>
@@ -648,7 +664,58 @@ I18N.apply();
 // разошлись, перерисовываемся уже на верном языке.
 I18N.sync(() => load());
 
-loadSaved();
-load();
+// ── Память страницы ─────────────────────────────────────────────────────
+// Вкладки это настоящие переходы, и раньше каждый уход из библиотеки
+// стирал всё: отбор, режим И/ИЛИ, даты, открытый каталог и прокрутку.
+// Вернулся за файлом, который только что нашёл, а искать заново.
+// Теперь отбор и прокрутка живут в sessionStorage: он умирает вместе
+// с окном, поэтому каждый запуск программы всё равно начинается с чистого
+// листа, а вот хождение по вкладкам внутри одного сеанса ничего не теряет.
+// Выделение не запоминаем намеренно: оно про текущее действие, и кнопки
+// действий не должны гореть от выбора, сделанного полчаса назад.
+
+const MEMORY = 'tanba-lib';
+let wakeScroll = 0;
+
+try {
+  const m = JSON.parse(sessionStorage.getItem(MEMORY) || 'null');
+  if (m && m.pick) {
+    Object.assign(pick, m.pick);
+    wakeScroll = m.scroll || 0;
+    // Поле поиска живёт в разметке и само из pick ничего не читает:
+    // остальную панель рисует render, а этому надо помочь.
+    if (pick.text) $('q').value = pick.text;
+  }
+} catch (e) { /* памяти нет, начинаем с чистого */ }
+
+function remember() {
+  try {
+    sessionStorage.setItem(MEMORY,
+      JSON.stringify({ pick, scroll: $('results').scrollTop }));
+  } catch (e) { /* нечем хранить, переживём */ }
+}
+
+// pagehide, а не beforeunload: он срабатывает и там, где документ уходит
+// в кэш навигации, и не мешает этому кэшу работать.
+addEventListener('pagehide', remember);
+
+// Открытый каталог надо поднять целиком, как это делает enterCatalog:
+// без catInfo строка пути и дерево в панели остались бы пустыми.
+if (pick.cat) {
+  enterCatalog(pick.cat);
+  loadSaved();
+} else {
+  loadSaved();
+  load();
+}
+
+// Прокрутку возвращаем после первой отрисовки: раньше некуда.
+const wake = new MutationObserver(() => {
+  if (!$('results').childElementCount) return;
+  wake.disconnect();
+  if (wakeScroll) $('results').scrollTop = wakeScroll;
+});
+wake.observe($('results'), { childList: true });
+
 // Библиотека пополняется на экране разбора, обновляемся при возврате в окно.
 addEventListener('focus', () => load());

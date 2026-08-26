@@ -226,7 +226,7 @@ function drawInfo() {
     <div class="ipic">
       ${isCat
         ? `<svg class="ic ibig"><use href="#i-folder"></use></svg>`
-        : `${ftypeIcon(f.ext)}<img src="/api/thumb/${f.id}?size=256" alt=""
+        : `${ftypeIcon(f.ext)}<img src="/api/thumb/${f.id}?size=256${f.modifiedAt ? '&v=' + f.modifiedAt : ''}" alt=""
              onload="this.classList.add('ok')" onerror="this.remove()">`}
     </div>
     <div class="ihead"><div class="iname">${esc(f.name)}</div></div>
