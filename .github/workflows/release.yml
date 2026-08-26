@@ -12,6 +12,14 @@ name: release
 on:
   push:
     tags: ['v*']
+  # The same build, started by hand. A release that failed halfway can be
+  # redone without deleting and re-pushing a tag, which rewrites history for
+  # anyone who already fetched it.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v'
+        required: true
 
 permissions:
   contents: write
@@ -29,11 +37,13 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Read version from the tag
+      - name: Work out the version
         shell: pwsh
+        env:
+          ASKED: ${{ inputs.version }}
         run: |
-          "VER=$($env:GITHUB_REF_NAME -replace '^v','')" |
-            Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $v = if ($env:ASKED) { $env:ASKED } else { $env:GITHUB_REF_NAME -replace '^v','' }
+          "VER=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       # Перед сборкой релиза, а не после: сломанная версия не должна уезжать
       # на машины, откуда её снимать придётся руками и ногами.
@@ -84,6 +94,6 @@ jobs:
           --repoUrl https://github.com/${{ github.repository }}
           --token ${{ secrets.GITHUB_TOKEN }}
           -o build/releases
-          --tag ${{ github.ref_name }}
+          --tag v${{ env.VER }}
           --releaseName ${{ env.VER }}
           --publish
