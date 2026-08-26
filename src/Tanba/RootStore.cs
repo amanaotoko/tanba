@@ -13,8 +13,17 @@ namespace Tanba;
 /// </summary>
 public static class RootStore
 {
+    /// <summary>
+    /// Куда писать настройку. Подменяется только тестами: настоящая программа
+    /// всегда кладёт её рядом с установленной копией, и трогать это из кода
+    /// незачем. Шов нужен потому, что забытый выбор уже один раз доехал до
+    /// человека, и проверять его на настоящем %LocalAppData% нельзя, там
+    /// лежит его собственная настройка.
+    /// </summary>
+    public static string? HomeForTests;
+
     public static string SettingPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        HomeForTests ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Tanba", "root.txt");
 
     public static string? Read()
@@ -29,10 +38,22 @@ public static class RootStore
         catch (UnauthorizedAccessException) { return null; }
     }
 
+    /// <summary>
+    /// Запоминает выбор. Не бросает: не сумели записать это неприятно, но
+    /// не повод не дать человеку работать. Зато говорим об этом в журнал,
+    /// иначе программа молча спрашивала бы место при каждом запуске.
+    /// </summary>
     public static void Write(string root)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(SettingPath)!);
-        File.WriteAllText(SettingPath, Path.GetFullPath(root));
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingPath)!);
+            File.WriteAllText(SettingPath, Path.GetFullPath(root));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Не смог запомнить хранилище: {ex.Message}");
+        }
     }
 
     // ── Что в папке ──────────────────────────────────────────────────────

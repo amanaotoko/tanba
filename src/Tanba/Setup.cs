@@ -129,7 +129,7 @@ public static class Setup
         await app.StopAsync();
         await app.DisposeAsync();
 
-        return chosen is null ? null : new Config(chosen);
+        return chosen is null ? null : Accept(chosen);
     }
 
     /// <summary>
@@ -247,6 +247,20 @@ public static class Setup
             return File.Exists(db) ? File.GetCreationTime(db).ToString("dd.MM.yyyy") : null;
         }
         catch (Exception) { return null; }
+    }
+
+    /// <summary>
+    /// Превращает выбранный человеком путь в настройку программы.
+    ///
+    /// Отдельным шагом потому, что тут и была ошибка: путь становился
+    /// настройкой, но нигде не запоминался, и мастер открывался при каждом
+    /// запуске, хотя программа была установлена и настроена. Мимо этого шага
+    /// пути от мастера к работающей программе нет, и он проверяется тестом.
+    /// </summary>
+    public static Config Accept(string chosen)
+    {
+        RootStore.Write(chosen);
+        return new Config(chosen);
     }
 
     private static object Say(RootStore.Look l) => new
