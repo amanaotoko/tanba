@@ -114,6 +114,21 @@ public sealed partial class MainWindow : Form
         catch (InvalidOperationException) { }
     }
 
+    /// <summary>
+    /// Закрыть окно и выйти, а не свернуться в трей. Крестик при включённом
+    /// автозапуске уходит в трей намеренно, но перезапуску нужен настоящий
+    /// выход. Возвращает false, если окна нет: тогда завершать программу
+    /// придётся тому, кто позвал.
+    /// </summary>
+    public static bool QuitNow()
+    {
+        var w = _instance;
+        if (w is null || w.IsDisposed) return false;
+        try { w.BeginInvoke(() => { w._quitting = true; w.Close(); }); return true; }
+        catch (ObjectDisposedException) { return false; }
+        catch (InvalidOperationException) { return false; }
+    }
+
     private void Reveal()
     {
         _hideOnce = false;

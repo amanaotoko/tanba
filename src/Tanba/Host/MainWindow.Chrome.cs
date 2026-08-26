@@ -30,6 +30,13 @@ public sealed partial class MainWindow
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     private const int DWMWA_BORDER_COLOR = 34;
 
+    // Скругление углов, как у всех окон Windows 11. Обычным окнам система
+    // скругляет углы сама, но наше забрало у неё всю неклиентскую область,
+    // и такому она оставляет прямые углы. Просим явно, ровно так же это
+    // делает Chromium, у которого окно устроено так же.
+    private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWCP_ROUND = 2;
+
     // Токен --strip, цвет полосы с вкладками: кромка идёт по её краю.
     private const int EdgeDark = 0x0C0B0B;   // #0B0B0C
     private const int EdgeLight = 0xEBEFEF;  // #EFEFEB
@@ -112,9 +119,14 @@ public sealed partial class MainWindow
         var edge = light ? EdgeLight : EdgeDark;
 
         // Старые сборки Windows этих свойств не знают и вернут ошибку.
-        // Ничего не сломается, кромка останется системной.
+        // Ничего не сломается, кромка останется системной, углы прямыми.
         DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
         DwmSetWindowAttribute(Handle, DWMWA_BORDER_COLOR, ref edge, sizeof(int));
+
+        // К теме отношения не имеет, но живёт на той же рамке и точно так же
+        // слетает, если окно пересоздадут, поэтому ставится здесь.
+        var round = DWMWCP_ROUND;
+        DwmSetWindowAttribute(Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
     }
 
     [LibraryImport("user32.dll")]

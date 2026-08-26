@@ -217,7 +217,24 @@ for (const b of $('lang').children) {
     // Разметку переписывает apply, а тексты, которые собирает код, render:
     // на экране есть и то, и другое.
     I18N.set(v);
-    I18N.apply();
+    // ── Настроить заново ────────────────────────────────────────────────────
+
+$('setupAgain').onclick = async () => {
+  const yes = await askBox({
+    title: t('settings.storage.again.title'),
+    text: t('settings.storage.again.body'),
+    ok: t('settings.storage.again.ok'),
+    danger: false,
+  });
+  if (!yes) return;
+
+  // Ответ уходит раньше, чем программа закроется, но ненамного: дальше
+  // соединение оборвётся, и это здесь единственный признак, что пошло.
+  try { await send('POST', '/api/setup/again'); } catch (e) { /* уже уходит */ }
+  say(t('settings.storage.again.wait'), t('settings.storage.again.waitNote'));
+};
+
+I18N.apply();
     paintLang();
     if (s) render();   // до первого ответа сервера рисовать ещё нечего
     // Настоящее место выбора это настройки программы, а не localStorage:

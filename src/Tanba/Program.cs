@@ -38,6 +38,9 @@ var toTray = args.Contains(Args.Tray) && !restarted;
 // Вторая копия не нужна и вредна: порт один и база одна. После включения
 // автозапуска программа всегда висит в трее, и ярлык на столе иначе
 // плодил бы копии, дерущиеся за один и тот же порт.
+// Перезапуск самого себя: прошлая копия ещё держит и порт, и мьютекс.
+await WaitForPredecessor(args);
+
 using var single = new Mutex(true, @"Local\Tanba.instance", out var firstCopy);
 if (!firstCopy)
 {
@@ -46,6 +49,11 @@ if (!firstCopy)
 }
 
 var cfg = Config.Load();
+
+// Кнопка «Настроить заново» перезапускает программу с этим ключом: место
+// выбрано и запомнено, но человек хочет посмотреть мастер или переехать.
+// Прошлый выбор при этом не теряется, он подставится в поле как есть.
+if (args.Contains(Args.Setup)) cfg = null;
 
 // При запуске вместе с Windows диск может быть ещё не подключён, поэтому ждём.
 // Терпения даём больше именно в этом режиме: человек в этот момент не смотрит.
@@ -337,6 +345,29 @@ Console.WriteLine(toTray ? "Поднялись в трей." : "Окно отк�
 await app.WaitForShutdownAsync();
 
 // ── Мелочи запуска ───────────────────────────────────────────────────────
+
+/// <summary>
+/// Ждёт выхода прошлой копии, если та передала свой номер ключом --waitpid.
+/// Без этого новая копия увидит занятый мьютекс, вежливо попросит старую
+/// показать окно и выйдет сама, а перезапуск не состоится.
+/// </summary>
+static async Task WaitForPredecessor(string[] args)
+{
+    var i = Array.IndexOf(args, Args.WaitPid);
+    if (i < 0 || i + 1 >= args.Length || !int.TryParse(args[i + 1], out var pid)) return;
+
+    try
+    {
+        using var old = System.Diagnostics.Process.GetProcessById(pid);
+        using var patience = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await old.WaitForExitAsync(patience.Token);
+    }
+    catch (ArgumentException) { /* уже вышла, что и требовалось */ }
+    catch (OperationCanceledException)
+    {
+        Console.Error.WriteLine($"Прошлая копия ({pid}) не вышла за полминуты, идём дальше");
+    }
+}
 
 /// <summary>Просит уже работающую копию показать своё окно.</summary>
 static async Task Poke()

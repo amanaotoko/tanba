@@ -64,6 +64,29 @@ public static class SettingsApi
         // Путь берём из настроек, а не из запроса: иначе страница получила бы
         // возможность запустить что угодно чем угодно.
 
+        // «Настроить заново». Показать мастер прямо сейчас нельзя: он поднимает
+        // свой веб-сервер, а порт занят нами же, и хранилище открыто на запись.
+        // Поэтому перезапускаемся с ключом --setup, а новая копия ждёт, пока
+        // эта отпустит и порт, и мьютекс, и базу.
+        app.MapPost("/api/setup/again", (IHostApplicationLifetime life) =>
+        {
+            var exe = Startup.TargetExe();
+            if (string.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
+                return Results.BadRequest(new { error = Lang.Say(
+                    "Не понял, чем перезапуститься", "Nothing to restart from") });
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe)
+            {
+                UseShellExecute = false,
+                ArgumentList = { Args.Setup, Args.WaitPid, Environment.ProcessId.ToString() },
+            });
+
+            // Крестик при включённом автозапуске уходит в трей, поэтому выход
+            // просим явно. Окна может не быть вовсе, см. --no-window.
+            if (!Host.MainWindow.QuitNow()) life.StopApplication();
+            return Results.Ok(new { restarting = true });
+        });
+
         app.MapPost("/api/openroot", () =>
         {
             System.Diagnostics.Process.Start(
