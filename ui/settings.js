@@ -217,7 +217,15 @@ for (const b of $('lang').children) {
     // Разметку переписывает apply, а тексты, которые собирает код, render:
     // на экране есть и то, и другое.
     I18N.set(v);
-    // ── Настроить заново ────────────────────────────────────────────────────
+    paintLang();
+    if (s) render();   // до первого ответа сервера рисовать ещё нечего
+    // Настоящее место выбора это настройки программы, а не localStorage:
+    // значок в трее и мастер первого запуска берут язык оттуда.
+    send('POST', '/api/lang', { lang: v }).catch(e => toast(String(e.message || e), 'err'));
+  };
+}
+
+// ── Настроить заново ────────────────────────────────────────────────────
 
 $('setupAgain').onclick = async () => {
   const yes = await askBox({
@@ -233,15 +241,6 @@ $('setupAgain').onclick = async () => {
   try { await send('POST', '/api/setup/again'); } catch (e) { /* уже уходит */ }
   say(t('settings.storage.again.wait'), t('settings.storage.again.waitNote'));
 };
-
-I18N.apply();
-    paintLang();
-    if (s) render();   // до первого ответа сервера рисовать ещё нечего
-    // Настоящее место выбора это настройки программы, а не localStorage:
-    // значок в трее и мастер первого запуска берут язык оттуда.
-    send('POST', '/api/lang', { lang: v }).catch(e => toast(String(e.message || e), 'err'));
-  };
-}
 
 function paintLang() {
   for (const b of $('lang').children) b.classList.toggle('on', b.dataset.lang === I18N.lang);
