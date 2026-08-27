@@ -71,6 +71,18 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 
 <div class="toast" id="toast"></div>
 
+<script>
+// Содержимое из прошлого визита, в первый же кадр, как уже сделано с шапкой.
+// Скрипты в конце страницы идут по сети, и до них экран стоял пустым: полоса
+// есть, а под ней голое место, куда потом вскакивает содержимое.
+try {
+  var __f = JSON.parse(sessionStorage.getItem('tanba-first-tags') || 'null');
+  if (__f) ['editor'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && __f[id]) el.innerHTML = __f[id];
+  });
+} catch (e) { }
+</script>
 <script src="strings.js"></script>
 <script src="i18n.js"></script>
 <script src="chrome.js"></script>

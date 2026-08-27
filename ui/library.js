@@ -388,6 +388,21 @@ function renderResults() {
   const key = JSON.stringify([pick, res.total,
     res.files.map(f => [f.id, f.name, f.modifiedAt, f.movedTo, f.count])]);
   if (key === shownKey && box.querySelector('.grid')) return;
+
+  // Сетка могла приехать готовой из инлайн-снимка: перенимаем, если состав
+  // совпадает, иначе innerHTML создаст картинки заново и все эскизы
+  // проявятся с нуля.
+  if (!shownKey && box.querySelector('.grid')) {
+    const dom = [...box.querySelectorAll('.card')].map(el => +el.dataset.id);
+    const ids = res.files.map(f => f.id);
+    if (dom.length === ids.length && dom.every((d, i) => d === ids[i])) {
+      shownKey = key;
+      bindCards(box);
+      reviveLazy(box);
+      return;
+    }
+  }
+
   shownKey = key;
 
   box.innerHTML = `<div class="grid">` + res.files.map(f => `
@@ -409,9 +424,42 @@ function renderResults() {
       ? `<div class="more"><button class="btn" id="more">${t('lib.more', { n: num(res.total - res.files.length) })}</button></div>`
       : '');
 
-  // Двойной клик по каталогу входит внутрь, по файлу открывает сам файл,
-  // как в проводнике. Показать файл в проводнике осталось в правом меню:
-  // это отдельное действие, и им пользуются заметно реже, чем открывают.
+  bindCards(box);
+}
+
+
+/// <summary>
+/// Будит ленивые картинки в перенятой сетке. Родная ленивая загрузка
+/// Chromium не подхватывает img, вставленные скриптом во время разбора
+/// страницы: они не грузятся вовсе, даже когда доезжаешь до них прокруткой,
+/// проверено живьём. Правило то же самое, что у loading="lazy": попал в окно
+/// с запасом, значит грузись.
+/// </summary>
+function reviveLazy(box) {
+  const dead = [...box.querySelectorAll('img[loading="lazy"]')]
+    .filter(i => !i.complete || !i.naturalWidth);
+  if (!dead.length) return;
+
+  // Следим за карточками, а не за самими картинками: незагруженная картинка
+  // схлопнута в нулевой размер, а нулевой прямоугольник не пересекается ни
+  // с чем, и наблюдатель для неё не срабатывает. У карточки размер есть всегда.
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries)
+      if (e.isIntersecting) {
+        for (const im of e.target.querySelectorAll('img[loading="lazy"]')) im.loading = 'eager';
+        io.unobserve(e.target);
+      }
+  }, { root: box, rootMargin: '600px' });
+  for (const i of dead) io.observe(i.closest('.card') || i);
+}
+
+// Двойной клик по каталогу входит внутрь, по файлу открывает сам файл,
+// как в проводнике. Показать файл в проводнике осталось в правом меню:
+// это отдельное действие, и им пользуются заметно реже, чем открывают.
+//
+// Отдельной функцией: зовётся после пересборки сетки и после перенимания
+// готовой сетки из инлайн-снимка.
+function bindCards(box) {
   box.querySelectorAll('.card').forEach(el => {
     el.ondblclick = () => el.dataset.kind === 'catalog'
       ? enterCatalog(+el.dataset.id)
@@ -707,6 +755,13 @@ function remember() {
       pick,
       scroll: $('results').scrollTop,
       snap: { res, facets, saved, catInfo },
+    }));
+    // И готовую разметку: инлайновый скрипт страницы покажет её в первом
+    // же кадре, до сетевых скриптов, как уже сделано с шапкой.
+    sessionStorage.setItem('tanba-first-library', JSON.stringify({
+      panel: $('panel').innerHTML,
+      scope: $('scope').innerHTML,
+      results: $('results').innerHTML,
     }));
   } catch (e) { /* нечем хранить, переживём */ }
 }

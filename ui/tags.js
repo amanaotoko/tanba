@@ -263,7 +263,13 @@ try {
 } catch (e) { /* снимка нет */ }
 
 addEventListener('pagehide', () => {
-  try { sessionStorage.setItem('tanba-tags', JSON.stringify(tree)); } catch (e) { }
+  try {
+    sessionStorage.setItem('tanba-tags', JSON.stringify(tree));
+    // И готовую разметку, в первый кадр следующего визита.
+    sessionStorage.setItem('tanba-first-tags', JSON.stringify({
+      editor: $('editor').innerHTML,
+    }));
+  } catch (e) { }
 });
 
 // Быстрая копия языка могла разойтись с настоящей настройкой: её выбирают

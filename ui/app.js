@@ -147,6 +147,22 @@ function renderFiles() {
   // А сюда мы попадаем на каждый клик по файлу и на каждый поставленный тег,
   // потому что состояние флажков считает сервер и его надо перезапросить.
   const ids = list.map(f => f.id);
+
+  // Сетка могла приехать готовой из инлайн-снимка: та же разметка, но без
+  // обработчиков и без нашего учёта. Если состав совпадает, перенимаем её
+  // вместо пересборки: иначе innerHTML создал бы картинки заново и каждый
+  // эскиз проявлялся бы с нуля, ровно то мигание, ради которого всё это.
+  if (!shownIds.length && box.querySelector('.grid')) {
+    const dom = [...box.querySelectorAll('.card')].map(el => +el.dataset.id);
+    if (dom.length === ids.length && dom.every((d, i) => d === ids[i])) {
+      shownIds = ids;
+      bindCards(box);
+      reviveLazy(box);
+      for (const f of list) patchCard(box, f, tagName);
+      return;
+    }
+  }
+
   if (ids.length === shownIds.length && ids.every((id, i) => id === shownIds[i])
       && box.querySelector('.grid')) {
     for (const f of list) patchCard(box, f, tagName);
@@ -165,10 +181,43 @@ function renderFiles() {
       <div class="name">${esc(f.name)}</div>
     </div>`).join('') + `</div>`;
 
-  // Выделение по клику вешает picking.js, одним слушателем на всю сетку
-  // и одинаково с библиотекой. Здесь остаётся двойной клик: им открывается
-  // сам файл, потому что перед тем как вешать теги обычно надо посмотреть,
-  // что это вообще такое, а по эскизу видно не всё.
+  bindCards(box);
+}
+
+// Выделение по клику вешает picking.js, одним слушателем на всю сетку
+// и одинаково с библиотекой. Здесь остаётся двойной клик: им открывается
+// сам файл, потому что перед тем как вешать теги обычно надо посмотреть,
+// что это вообще такое, а по эскизу видно не всё.
+//
+
+/// <summary>
+/// Будит ленивые картинки в перенятой сетке. Родная ленивая загрузка
+/// Chromium не подхватывает img, вставленные скриптом во время разбора
+/// страницы: они не грузятся вовсе, даже когда доезжаешь до них прокруткой,
+/// проверено живьём. Правило то же самое, что у loading="lazy": попал в окно
+/// с запасом, значит грузись.
+/// </summary>
+function reviveLazy(box) {
+  const dead = [...box.querySelectorAll('img[loading="lazy"]')]
+    .filter(i => !i.complete || !i.naturalWidth);
+  if (!dead.length) return;
+
+  // Следим за карточками, а не за самими картинками: незагруженная картинка
+  // схлопнута в нулевой размер, а нулевой прямоугольник не пересекается ни
+  // с чем, и наблюдатель для неё не срабатывает. У карточки размер есть всегда.
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries)
+      if (e.isIntersecting) {
+        for (const im of e.target.querySelectorAll('img[loading="lazy"]')) im.loading = 'eager';
+        io.unobserve(e.target);
+      }
+  }, { root: box, rootMargin: '600px' });
+  for (const i of dead) io.observe(i.closest('.card') || i);
+}
+
+// Отдельной функцией, потому что зовётся из двух мест: после пересборки
+// сетки и после перенимания готовой сетки из инлайн-снимка.
+function bindCards(box) {
   box.querySelectorAll('.card').forEach(el => {
     el.ondblclick = async () => {
       try { await api('/api/files/open', { id: +el.dataset.id }); }
@@ -487,7 +536,15 @@ try {
 } catch (e) { /* снимка нет, будет обычная загрузка */ }
 
 addEventListener('pagehide', () => {
-  try { sessionStorage.setItem('tanba-triage', JSON.stringify(state)); } catch (e) { }
+  try {
+    sessionStorage.setItem('tanba-triage', JSON.stringify(state));
+    // И готовую разметку тоже: инлайновый скрипт страницы покажет её в
+    // первом же кадре, до сетевых скриптов, как уже сделано с шапкой.
+    sessionStorage.setItem('tanba-first-triage', JSON.stringify({
+      side: $('side').innerHTML,
+      files: $('files').innerHTML,
+    }));
+  } catch (e) { }
 });
 
 // Быстрая копия языка могла разойтись с настоящей настройкой: её выбирают
