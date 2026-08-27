@@ -256,6 +256,16 @@ function toast(text, cls = '') {
 // как придёт дерево, чтобы поле поиска не мигало чужим языком.
 I18N.apply();
 
+// Первый кадр из снимка прошлого визита: редактор не пустеет на переходе.
+try {
+  const m = JSON.parse(sessionStorage.getItem('tanba-tags') || 'null');
+  if (m && m.groups) { tree = m; render(); }
+} catch (e) { /* снимка нет */ }
+
+addEventListener('pagehide', () => {
+  try { sessionStorage.setItem('tanba-tags', JSON.stringify(tree)); } catch (e) { }
+});
+
 // Быстрая копия языка могла разойтись с настоящей настройкой: её выбирают
 // в мастере, а у того своё окно и свой localStorage. Сверяемся и, если
 // разошлись, перерисовываемся уже на верном языке.

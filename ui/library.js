@@ -685,13 +685,29 @@ try {
     // Поле поиска живёт в разметке и само из pick ничего не читает:
     // остальную панель рисует render, а этому надо помочь.
     if (pick.text) $('q').value = pick.text;
+
+    // Первый кадр из снимка прошлого визита: сетка, панель и счётчики
+    // встают сразу, а не вскакивают после ответа сервера. Свежие данные
+    // придут следом, и одинаковые сетка не перерисовывает.
+    if (m.snap && m.snap.res) {
+      res = m.snap.res;
+      facets = m.snap.facets || facets;
+      saved = m.snap.saved || [];
+      catInfo = m.snap.catInfo || null;
+      facetsReady = true;
+      sortFacets(); indexTags(); render();
+      if (wakeScroll) $('results').scrollTop = wakeScroll;
+    }
   }
 } catch (e) { /* памяти нет, начинаем с чистого */ }
 
 function remember() {
   try {
-    sessionStorage.setItem(MEMORY,
-      JSON.stringify({ pick, scroll: $('results').scrollTop }));
+    sessionStorage.setItem(MEMORY, JSON.stringify({
+      pick,
+      scroll: $('results').scrollTop,
+      snap: { res, facets, saved, catInfo },
+    }));
   } catch (e) { /* нечем хранить, переживём */ }
 }
 

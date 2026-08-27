@@ -32,6 +32,23 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 <div class="app tags">
 
   <div id="chrome"></div>
+  <script>
+  // Шапка из прошлой страницы, синхронно и до сетевых скриптов: без этого
+  // первый кадр каждого перехода стоит с голой полосой вместо вкладок.
+  // chrome.js пересоберёт её той же разметкой и повесит обработчики.
+  try {
+    var __h = sessionStorage.getItem('tanba-chrome');
+    if (__h) {
+      var __c = document.getElementById('chrome');
+      __c.className = 'titlebar';
+      __c.innerHTML = __h;
+      var __here = location.pathname.split('/').pop() || 'index.html';
+      __c.querySelectorAll('.tab').forEach(function (a) {
+        a.classList.toggle('on', a.getAttribute('href') === __here);
+      });
+    }
+  } catch (e) { }
+  </script>
 
   <!-- Панель под вкладками есть на всех экранах, но содержимое своё.
        Здесь отбирать нечего, а вот найти тег среди полусотни надо. -->
