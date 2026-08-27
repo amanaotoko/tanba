@@ -59,7 +59,7 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
         }
 
         // Вторая защита, на случай если появится ещё один путь «пройти мимо»:
-        // строку сносим только когда файла действительно нет на диске.
+        // помечаем только то, чего действительно нет на диске.
         foreach (var id in repo.ForgetMissingInbox(c, seen, rel => System.IO.File.Exists(cfg.ToFull(rel))))
             thumbs?.Forget(id);
 
@@ -67,8 +67,8 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
     }
 
     /// <summary>
-    /// «Разложить»: переносит размеченные файлы из приёма в хранилище.
-    /// Файлы без единого тега не трогает: их надо либо разметить, либо отложить.
+    /// «В библиотеку»: переносит размеченные файлы из приёма в хранилище.
+    /// Файлы без единого тега не трогает: сначала разметка, потом переезд.
     /// </summary>
     public FileResult File(IReadOnlyList<long> fileIds, bool allowUntagged = false)
     {
@@ -84,7 +84,14 @@ public sealed class Ingest(Config cfg, Repo repo, Tanba.Shell.Thumbs? thumbs = n
             if (!allowUntagged && repo.TagsOf(c, id).Count == 0) { skipped++; continue; }
 
             var src = cfg.ToFull(f.RelPath);
-            if (!System.IO.File.Exists(src)) { repo.Delete(c, id); thumbs?.Forget(id); continue; }
+            if (!System.IO.File.Exists(src))
+            {
+                // Унесли в проводнике между отрисовкой и нажатием. Строку
+                // не удаляем, см. ForgetMissingInbox: теги дороже порядка.
+                repo.MarkMissing(c, id);
+                errors.Add($"{f.OrigName}: файла уже нет на диске");
+                continue;
+            }
 
             try
             {

@@ -277,7 +277,6 @@ const STRINGS = {
     "toast.filed.merged": "дубликатов слито: {n}",
     "toast.filed.skipped": "пропущено без тегов: {n}",
     "toast.fileFailed": "Не удалось разложить: {error}",
-    "toast.filedUntagged": "Отложено без тегов: {n}, ищи в «Неразобранном»",
     "toast.filterFailed": "Не удалось получить отбор: {error}",
     "toast.groupCreated": "Группа создана",
     "toast.groupDeleted": "Группа удалена",
@@ -292,8 +291,6 @@ const STRINGS = {
 
     // разбор
     "triage.file": "В библиотеку",
-    "triage.later": "Отложить",
-    "triage.later.hint": "Убрать из приёма без тегов, попадут в «Неразобранное»",
     "triage.rescan": "Пересканировать приём",
     "triage.title": "Tanba, разбор",
 
@@ -575,7 +572,6 @@ const STRINGS = {
     "toast.filed.merged": "duplicates merged: {n}",
     "toast.filed.skipped": "skipped, no tags: {n}",
     "toast.fileFailed": "Could not add to the library: {error}",
-    "toast.filedUntagged": "Set aside untagged: {n}, look in “Unsorted”",
     "toast.filterFailed": "Could not load the results: {error}",
     "toast.groupCreated": "Group created",
     "toast.groupDeleted": "Group deleted",
@@ -590,8 +586,6 @@ const STRINGS = {
 
     // разбор
     "triage.file": "Add to library",
-    "triage.later": "Set aside",
-    "triage.later.hint": "Take them out of the inbox untagged, they land in “Unsorted”",
     "triage.rescan": "Rescan the inbox",
     "triage.title": "Tanba, triage",
 

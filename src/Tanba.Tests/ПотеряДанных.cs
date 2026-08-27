@@ -11,6 +11,52 @@ namespace Tanba.Tests;
 public sealed class ПотеряДанных
 {
     /// <summary>
+    /// Файл, унесённый из приёма мимо программы, терял строку и все теги:
+    /// обход видел, что файла нет, и удалял запись, а теги уходили каскадом.
+    /// Случайное перетаскивание в проводнике молча стирало разметку, и не
+    /// было ни следа, по которому это можно заметить. Теперь строка
+    /// помечается пропавшей, а вернувшийся на то же место файл срастается
+    /// со своей разметкой обратно.
+    /// </summary>
+    [Fact]
+    public void Унесённый_из_приёма_файл_не_теряет_теги()
+    {
+        using var b = new Bench();
+        var path = b.Drop("унесли.cdr");
+        b.Ingest.ScanInbox();
+
+        long id;
+        using (var c = b.Repo.Open())
+        {
+            id = b.Repo.ListInbox(c)[0].Id;
+            b.Repo.ApplyTag(c, [id], b.SomeTag(), true);
+        }
+
+        // Унесли в проводнике: файла нет, программа ни при чём.
+        File.Delete(path);
+        b.Ingest.ScanInbox();
+
+        using (var c = b.Repo.Open())
+        {
+            // С экрана разбора файл пропал, но строка жива и помнит теги.
+            Assert.DoesNotContain(b.Repo.ListInbox(c), f => f.Id == id);
+            Assert.Equal("1", b.Cell("is_missing", id));
+            Assert.Single(b.Repo.TagsOf(c, id));
+        }
+
+        // Вернули на место: пометка снимается, разметка срастается.
+        File.WriteAllText(path, "содержимое");
+        b.Ingest.ScanInbox();
+
+        using (var c = b.Repo.Open())
+        {
+            var again = b.Repo.ListInbox(c).SingleOrDefault(f => f.Id == id);
+            Assert.NotNull(again);
+            Assert.Single(b.Repo.TagsOf(c, id));
+        }
+    }
+
+    /// <summary>
     /// Возвращает хранилище к тому виду, какой был до переименования приёма:
     /// папка со старым именем и пути в базе, ведущие в неё.
     /// </summary>

@@ -107,8 +107,10 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
       <svg class="ic"><use href="#i-check"></use></svg>
       <span data-i18n="triage.file">В библиотеку</span> <span class="count" id="fileN">0</span>
     </button>
-    <button class="btn btn-ghost" id="laterBtn" title="Убрать из приёма без тегов, попадут в «Неразобранное»"
-            data-i18n="triage.later" data-i18n-title="triage.later.hint">Отложить</button>
+    <!-- Кнопки «Отложить» здесь больше нет намеренно. Она уносила файлы
+         без тегов в хранилище, обещая «Неразобранное», которого в программе
+         не существует: найти такой файл потом было нечем, кроме имени.
+         Не размечен значит лежит в приёме и ждёт, приём для того и есть. -->
     <span class="dim" id="pending"></span>
     <span class="grow"></span>
     <span class="dim" id="hint"></span>

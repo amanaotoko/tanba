@@ -249,8 +249,6 @@ function renderBar() {
   const bare = state.inbox.length - state.inbox.filter(f => f.tags.length).length;
   $('fileN').textContent = I18N.num(sel.size);
   $('fileBtn').disabled = !sel.size;
-  // Откладывать есть что, только если среди выделенного есть неразмеченное.
-  $('laterBtn').disabled = ![...sel].some(id => !state.inbox.find(f => f.id === id)?.tags.length);
   $('hint').textContent = bare ? tn(bare, 'inbox.bar.untagged') : '';
 }
 
@@ -306,19 +304,6 @@ $('fileBtn').onclick = async () => {
     btn.disabled = false;
     await load();
   }
-};
-
-$('laterBtn').onclick = async () => {
-  // Тоже по выделению: правило на экране должно быть одно. Раньше эта кнопка
-  // уносила из приёма ВСЕ неразмеченные файлы одним нажатием, и после того
-  // как соседняя стала слушаться выделения, она осталась единственным
-  // способом случайно отправить в хранилище сотню файлов.
-  const ids = [...sel].filter(id => !state.inbox.find(f => f.id === id)?.tags.length);
-  if (!ids.length) return;
-  const r = await api('/api/file', { fileIds: ids, allowUntagged: true });
-  sel.clear();
-  toast(t('toast.filedUntagged', { n: I18N.num(r.moved) }));
-  await load();
 };
 
 $('rescan').onclick = async () => { await api('/api/rescan', {}); await load(); };

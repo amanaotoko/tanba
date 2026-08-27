@@ -147,6 +147,15 @@ public sealed class Repo(Db db)
     /// Проверка onDisk обязательна и не для красоты: отсутствие в списке
     /// увиденных значит лишь то, что сканер до файла не добрался.
     /// </summary>
+    /// <summary>
+    /// Помечает пропавшими строки приёма, чьих файлов больше нет на диске.
+    ///
+    /// Именно помечает. Раньше строка удалялась, и теги уходили каскадом:
+    /// файл, перетащенный из приёма в проводнике, молча терял всю разметку,
+    /// и узнать об этом было не по чему. Пропал с диска значит пропал из
+    /// виду, а не из базы: вернётся на то же место, и UpsertInbox снимет
+    /// пометку, разметка срастётся обратно.
+    /// </summary>
     public List<long> ForgetMissingInbox(SqliteConnection c, IEnumerable<string> seenRelPaths,
         Func<string, bool> onDisk)
     {
@@ -154,7 +163,7 @@ public sealed class Repo(Db db)
         var doomed = ListInbox(c)
             .Where(f => !seen.Contains(f.RelPath) && !onDisk(f.RelPath))
             .Select(f => f.Id).ToList();
-        foreach (var id in doomed) Delete(c, id);
+        foreach (var id in doomed) MarkMissing(c, id);
         return doomed;
     }
 
