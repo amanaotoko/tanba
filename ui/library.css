@@ -3,10 +3,10 @@
 
 [hidden]{display:none !important}
 
-/* Шапка, строка отбора, командная панель, две колонки, строка состояния.
+/* Строка отбора, командная панель, две колонки, строка состояния.
    Нижняя строка здесь тоньше, чем на разборе: там внизу кнопки, а тут
    только цифры. Поэтому свой набор рядов, а не общий из tanba.css. */
-.app.lib.cmds{grid-template-rows:40px auto auto 1fr 28px}
+.app.lib.cmds{grid-template-rows:auto auto 1fr 28px}
 
 a.btn{text-decoration:none}
 

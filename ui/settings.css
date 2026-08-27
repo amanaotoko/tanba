@@ -1,7 +1,7 @@
 /* Настройки. Экран редкий, поэтому колонка по центру и крупные строки:
    читать здесь важнее, чем экономить место. */
 
-.app.set{grid-template-rows:40px auto 1fr 28px}
+.app.set{grid-template-rows:auto 1fr 28px}
 
 .sheet{overflow:auto;padding:20px 16px 40px}
 .sheet > *{width:100%;max-width:720px;margin:0 auto}
