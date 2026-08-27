@@ -31,24 +31,6 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 
 <div class="app tags">
 
-  <div id="chrome"></div>
-  <script>
-  // Шапка из прошлой страницы, синхронно и до сетевых скриптов: без этого
-  // первый кадр каждого перехода стоит с голой полосой вместо вкладок.
-  // chrome.js пересоберёт её той же разметкой и повесит обработчики.
-  try {
-    var __h = sessionStorage.getItem('tanba-chrome');
-    if (__h) {
-      var __c = document.getElementById('chrome');
-      __c.className = 'titlebar';
-      __c.innerHTML = __h;
-      var __here = location.pathname.split('/').pop() || 'index.html';
-      __c.querySelectorAll('.tab').forEach(function (a) {
-        a.classList.toggle('on', a.getAttribute('href') === __here);
-      });
-    }
-  } catch (e) { }
-  </script>
 
   <!-- Панель под вкладками есть на всех экранах, но содержимое своё.
        Здесь отбирать нечего, а вот найти тег среди полусотни надо. -->
@@ -71,21 +53,9 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 
 <div class="toast" id="toast"></div>
 
-<script>
-// Содержимое из прошлого визита, в первый же кадр, как уже сделано с шапкой.
-// Скрипты в конце страницы идут по сети, и до них экран стоял пустым: полоса
-// есть, а под ней голое место, куда потом вскакивает содержимое.
-try {
-  var __f = JSON.parse(sessionStorage.getItem('tanba-first-tags') || 'null');
-  if (__f) ['editor'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el && __f[id]) el.innerHTML = __f[id];
-  });
-} catch (e) { }
-</script>
 <script src="strings.js"></script>
 <script src="i18n.js"></script>
-<script src="chrome.js"></script>
+<script src="bridge.js"></script>
 <script src="modal.js"></script>
 <script src="tags.js"></script>
 </body>

@@ -6,8 +6,10 @@
 // перетаскивание, чтобы два не шли одновременно.
 
 (function () {
-  var bridge = window.chrome && window.chrome.webview;
-  if (!bridge) return;   // в обычном браузере нативного хоста нет, не мешаем
+  // Признак хоста от оболочки: chrome.webview внутри кадра существует, но
+  // сообщения из кадра программа не получает, и проверка на него оставила бы
+  // перетаскивание молча неработающим.
+  if (!tanbaHost) return;   // в обычном браузере нативного хоста нет, не мешаем
 
   // Тащат выделенное; если карточка не в выделении, берём только её.
   function idsFor(card) {
@@ -26,14 +28,12 @@
 
     e.preventDefault();   // дальше ведёт C#
     var ids = idsFor(card);
-    if (ids.length) bridge.postMessage({ kind: 'dragOut', ids: ids });
+    if (ids.length) tanbaPost({ kind: 'dragOut', ids: ids });
   }, true);
 
   // Файлы извне до страницы не доходят (AllowExternalDrop=false), так что
   // зону приёма зажигает C#.
-  bridge.addEventListener('message', function (e) {
-    var m = e.data;
-    if (!m || m.kind !== 'dropHint') return;
+  tanbaOn('dropHint', function (m) {
     var el = document.getElementById('drop');
     if (el) el.classList.toggle('on', !!m.on);
   });

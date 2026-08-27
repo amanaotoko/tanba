@@ -230,6 +230,17 @@ function bindCards(box) {
 // это одна и та же панель, незачем сворачивать «Организацию» дважды.
 const collapsed = new Set(JSON.parse(localStorage.getItem('tanba-collapsed') || '[]'));
 
+// Список свёрнутых групп общий с библиотекой, а кадры живут всё время и
+// сами его не перечитывают. Браузер шлёт это событие всем документам того же
+// происхождения, кроме писавшего, так что достаточно послушать.
+addEventListener('storage', e => {
+  if (e.key !== 'tanba-collapsed') return;
+  collapsed.clear();
+  for (const n of JSON.parse(e.newValue || '[]')) collapsed.add(n);
+  sideKey = '';   // сравнение по слепку иначе решит, что ничего не изменилось
+  renderSide();
+});
+
 function toggleGroup(name) {
   collapsed.has(name) ? collapsed.delete(name) : collapsed.add(name);
   localStorage.setItem('tanba-collapsed', JSON.stringify([...collapsed]));
@@ -240,6 +251,13 @@ function toggleGroup(name) {
 /// перерисовка сбрасывает фокус, и набранное в поле «новый тег» пропадало бы
 /// при каждом обновлении состояния.
 let sideKey = '';
+
+/// Уйти на соседний экран. Просим оболочку, а не меняем адрес: смена адреса
+/// увела бы сам кадр, вкладка осталась бы прежней, а под ней оказался бы
+/// чужой экран, и вернуться было бы нечем.
+function goto(href) {
+  try { parent.tanbaShow(href); } catch (e) { location.href = href; }
+}
 
 function renderSide() {
   const key = JSON.stringify([sel.size, [...collapsed],
@@ -254,7 +272,7 @@ function renderSide() {
   // говорим, где теги заводятся, и уводим туда же.
   const top = !state.groups.some(g => g.tags.length)
     ? `<div class="dim">${esc(t('tags.none.title'))}</div>` +
-      `<a class="btn btn-ghost" href="tags.html">${esc(t('tags.none.note'))}</a>`
+      `<button class="btn btn-ghost" data-goto-tags>${esc(t('tags.none.note'))}</button>`
     : n ? `<div class="dim">${esc(tn(n, 'inbox.side.selected'))}</div>`
     : `<div class="dim">${esc(t('inbox.side.hint'))}</div>`;
 
@@ -276,6 +294,9 @@ function renderSide() {
 
   $('side').querySelectorAll('[data-collapse]').forEach(el => {
     el.onclick = () => toggleGroup(el.dataset.collapse);
+  });
+  $('side').querySelectorAll('[data-goto-tags]').forEach(el => {
+    el.onclick = () => goto('tags.html');
   });
   $('side').querySelectorAll('.tag').forEach(el => {
     el.onclick = () => toggleTag(+el.dataset.tag, el.dataset.state);
@@ -558,8 +579,9 @@ load();
 // на случай потерянного сообщения, и он редкий: при неизменных данных
 // перерисовки всё равно не будет, но и лишний запрос раз в четыре секунды
 // ни к чему.
-const host = window.chrome && window.chrome.webview;
-if (host) host.addEventListener('message', e => {
-  if (e.data && e.data.kind === 'inbox') load();
-});
-setInterval(load, host ? 30000 : 4000);
+// Признак хоста берём у оболочки, а не у chrome.webview: тот объект есть
+// и внутри кадра, поэтому проверка на него всегда истинна, а сообщения всё
+// равно не доходят. Ошибся бы тихо: приём обновлялся бы раз в полминуты
+// вместо мгновенного, и это выглядело бы как задумчивость программы.
+tanbaOn('inbox', () => load());
+setInterval(load, tanbaHost ? 30000 : 4000);

@@ -1,37 +1,38 @@
 'use strict';
 
-// Полоса заголовка окна. Вкладки лежат прямо в ней, как в проводнике 11:
-// заголовок мы забрали у системы себе, см. Host/MainWindow.Chrome.cs.
+// Оболочка окна. Держит полосу заголовка и четыре живых экрана, каждый
+// в своём кадре.
 //
-// Собирается кодом, а не переписывается в каждую страницу: экранов четыре,
-// и четыре копии одной шапки разъехались бы на первой же правке.
+// Раньше вкладки были ссылками, и каждое переключение сносило документ
+// целиком. Что бы мы ни клали в первый кадр нового документа, Chromium
+// рисует его по мере разбора, и кадр с наполовину собранной страницей
+// неизбежен: измерено на живом окне, шапка есть, под ней пусто.
+//
+// Здесь уничтожать нечего. Экран, на котором ты уже был, остаётся ровно
+// таким, каким его оставили: прокрутка, выделение, загруженные эскизы.
+// Переключение это смена видимости, один кадр, без единой перерисовки.
+//
+// Второе, что это даёт даром: у каждого кадра свой набор глобальных имён.
+// Четыре экрана объявляют своё $, esc, sel и tanbaCmd, и в одном документе
+// они бы столкнулись. Здесь не сталкиваются вовсе.
 
 (function () {
-  // Тема из прошлого запуска. Живёт здесь, потому что этот файл есть на всех
-  // экранах, а переключатель остался ровно один и лежит в Настройках.
-  if (localStorage.getItem('tanba-theme') === 'light') {
-    document.documentElement.dataset.tanba = 'light';
-  }
 
-  // Имя вкладки лежит рядом с ключом: русское остаётся в разметке запасным,
-  // а заполнение по data-i18n перекрывает его выбранным языком. Так вкладки
-  // следуют за языком и после переключения, а не только при первой сборке.
   var SCREENS = [
-    { href: 'index.html', name: 'Разбор', key: 'nav.triage', icon: 't-inbox' },
+    { href: 'triage.html', name: 'Разбор', key: 'nav.triage', icon: 't-inbox' },
     { href: 'library.html', name: 'Библиотека', key: 'nav.library', icon: 't-grid' },
     { href: 'tags.html', name: 'Теги', key: 'nav.tags', icon: 't-tag' },
     { href: 'settings.html', name: 'Настройки', key: 'nav.settings', icon: 't-cog' }
   ];
 
   var host = document.getElementById('chrome');
-  if (!host) return;
 
-  var here = location.pathname.split('/').pop() || 'index.html';
+  var here = SCREENS[0].href;
 
   var tabs = SCREENS.map(function (s) {
-    return '<a class="tab' + (s.href === here ? ' on' : '') + '" href="' + s.href + '">' +
+    return '<button class="tab' + (s.href === here ? ' on' : '') + '" data-go="' + s.href + '">' +
            '<svg class="ic"><use href="#' + s.icon + '"></use></svg>' +
-           '<span data-i18n="' + s.key + '">' + s.name + '</span></a>';
+           '<span data-i18n="' + s.key + '">' + s.name + '</span></button>';
   }).join('');
 
   // Клик по вкладке, которая и так открыта, раньше честно перезагружал
@@ -110,29 +111,65 @@
   // и после переключения языка забирает шапку вместе с остальным.
   I18N.apply(host);
 
-  // Готовую шапку отдаём следующей странице: инлайновый скрипт в разметке
-  // покажет её синхронно, до сетевых скриптов, и полоса вкладок перестанет
-  // пустеть на каждом переходе. Мы всё равно пересоберём её здесь заново,
-  // той же строкой, и глазу эта подмена не видна.
-  try { sessionStorage.setItem('tanba-chrome', host.innerHTML); } catch (e) { }
+  // ── Экраны ────────────────────────────────────────────────────────────
 
-  // Размер плиток. Класс вешаем на обёртку .files, а не на саму сетку:
-  // сетку перерисовывают на каждое действие, обёртку нет, и выбранный
-  // размер её переживает без всякой возни с восстановлением.
-  var files = document.querySelector('.files');
-  var seg = document.getElementById('tile');
-  if (files && seg) {
-    var setTile = function (size) {
-      files.classList.remove('tile-s', 'tile-l');
-      if (size === 's' || size === 'l') files.classList.add('tile-' + size);
-      [].forEach.call(seg.children, function (b) { b.classList.toggle('on', b.dataset.tile === size); });
-      localStorage.setItem('tanba-tile', size);
-    };
-    [].forEach.call(seg.children, function (b) {
-      b.onclick = function () { setTile(b.dataset.tile); };
-    });
-    setTile(localStorage.getItem('tanba-tile') || 'm');
+  var views = document.getElementById('views');
+  var frames = {};
+  var current = null;
+
+  function frameFor(href) {
+    if (frames[href]) return frames[href];
+    var f = document.createElement('iframe');
+    f.src = href;
+    f.hidden = true;
+    // Кадру нужно имя: по нему экран находит себя, а перетаскивание наружу
+    // отличает своё окно от чужого.
+    f.name = href;
+    views.appendChild(f);
+    frames[href] = f;
+    return f;
   }
+
+  function show(href) {
+    if (current === href) return;
+    current = href;
+
+    var f = frameFor(href);
+    for (var k in frames) frames[k].hidden = frames[k] !== f;
+
+    host.querySelectorAll('.tab').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.go === href);
+    });
+
+    // Клавиатура принадлежит видимому экрану: Escape, Ctrl+A и Enter
+    // слушает документ кадра, а не оболочки.
+    try { f.contentWindow.focus(); } catch (e) { }
+  }
+
+  // Экраны зовут это, когда им надо увести человека на соседнюю вкладку.
+  // Обычной ссылкой этого делать нельзя: ссылка увела бы САМ кадр, вкладка
+  // осталась бы прежней, а экран под ней подменился чужим.
+  window.tanbaShow = show;
+
+  host.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.tab') : null;
+    if (b) show(b.dataset.go);
+  });
+
+  show(SCREENS[0].href);
+
+  // Остальные три поднимаем следом, когда первый успокоился: тогда первое
+  // переключение на них тоже ничего не грузит. Порядок важен, иначе четыре
+  // экрана дерутся за сеть и первый показывается позже.
+  addEventListener('load', function () {
+    setTimeout(function () {
+      SCREENS.slice(1).forEach(function (s, i) {
+        setTimeout(function () { frameFor(s.href); }, i * 400);
+      });
+    }, 600);
+  });
+
+  // ── Мост к программе ──────────────────────────────────────────────────
 
   var bridge = window.chrome && window.chrome.webview;
 
@@ -142,12 +179,42 @@
     return;
   }
 
+  // Кадрам мост недоступен: сообщения из подкадра уходят в другое событие,
+  // на которое программа не подписана, а сообщения от программы приходят
+  // только в верхний документ. Поэтому оболочка работает почтой.
+  //
+  // Признак хоста для кадров это ИМЕННО эта функция, а не chrome.webview:
+  // сам объект WebView2 внедряет и в подкадры, поэтому проверка на него
+  // в кадре всегда истинна и молча ничего не делает.
+  window.__tanbaPost = function (msg) { bridge.postMessage(msg); };
+
+  bridge.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m) return;
+
+    if (m.kind === 'winState') {
+      document.documentElement.classList.toggle('maxed', !!m.max);
+      var use = document.getElementById('wMaxIcon');
+      if (use) use.setAttribute('href', m.max ? '#w-rest' : '#w-max');
+      var btn = host.querySelector('[data-win="max"]');
+      if (btn) btn.title = I18N.t(m.max ? 'win.restore' : 'win.maximize');
+      return;
+    }
+
+    // Всё остальное принадлежит экранам: рассылаем по всем живым кадрам,
+    // включая спрятанные. Спрятанный экран обязан оставаться свежим, иначе
+    // возврат на него покажет вчерашнее и всё-таки моргнёт.
+    for (var k in frames) {
+      try { frames[k].contentWindow.postMessage({ __tanba: m }, location.origin); }
+      catch (err) { }
+    }
+  });
+
   host.querySelectorAll('[data-win]').forEach(function (b) {
     b.onclick = function () { bridge.postMessage({ kind: 'win.' + b.dataset.win }); };
   });
 
   // Кромку окна вокруг нашей шапки красит система, и цвет ей задаёт форма.
-  // Про тему знает только страница, поэтому сообщаем сами.
   window.tanbaTheme = function () {
     bridge.postMessage({
       kind: 'theme',
@@ -155,6 +222,14 @@
     });
   };
   window.tanbaTheme();
+
+  // Тему переключают в настройках, то есть внутри кадра. Оболочка должна
+  // узнать об этом сама: своей копии выбора у неё нет.
+  addEventListener('storage', function (e) {
+    if (e.key !== 'tanba-theme') return;
+    document.documentElement.dataset.tanba = e.newValue === 'light' ? 'light' : 'dark';
+    window.tanbaTheme();
+  });
 
   // Окно забрано у системы целиком, поэтому его края накрыты страницей и
   // системе до них не дотянуться. Ловим их сами и просим Windows тянуть:
@@ -221,4 +296,5 @@
       btn.title = t(btn.dataset.i18nTitle);
     }
   });
+
 })();

@@ -19,6 +19,14 @@ let catInfo = null;   // имя, путь наверх и дерево теку�
 const collapsed = new Set(JSON.parse(localStorage.getItem('tanba-collapsed') || '[]'));
 let dateOpen = false;
 
+// Свёрнутые группы общие с разбором, см. тот же приём в app.js.
+addEventListener('storage', e => {
+  if (e.key !== 'tanba-collapsed') return;
+  collapsed.clear();
+  for (const n of JSON.parse(e.newValue || '[]')) collapsed.add(n);
+  renderPanel();
+});
+
 function toggleGroup(name) {
   collapsed.has(name) ? collapsed.delete(name) : collapsed.add(name);
   localStorage.setItem('tanba-collapsed', JSON.stringify([...collapsed]));

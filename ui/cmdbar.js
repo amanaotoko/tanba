@@ -171,13 +171,21 @@ if (cbar) {
 const INFO_KEY = 'tanba-info';
 let infoOn = localStorage.getItem(INFO_KEY) === '1';
 
-function setInfo(on) {
+function setInfo(on, quiet) {
   infoOn = on;
-  localStorage.setItem(INFO_KEY, on ? '1' : '0');
+  if (!quiet) localStorage.setItem(INFO_KEY, on ? '1' : '0');
   cmain?.classList.toggle('with-info', on);
   document.getElementById('infoBtn')?.classList.toggle('on', on);
   if (on) drawInfo();
 }
+
+// Панель сведений общая на разбор и библиотеку, а экраны теперь живут все
+// сразу и localStorage при рождении не перечитывают. Событие хранилища
+// приходит во все документы того же происхождения, кроме писавшего, так что
+// достаточно послушать его и не писать в ответ.
+addEventListener('storage', e => {
+  if (e.key === INFO_KEY) setInfo(e.newValue === '1', true);
+});
 
 /// Дата целиком, а не как на карточке: там она сокращена до места, а здесь
 /// места хватает и человек пришёл сюда именно за подробностями.

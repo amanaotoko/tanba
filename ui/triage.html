@@ -2,7 +2,7 @@
 <html lang="ru" data-tanba="dark">
 <head>
 <meta charset="utf-8">
-<title data-i18n="library.title">Tanba, библиотека</title>
+<title data-i18n="triage.title">Tanba, разбор</title>
 <script>
 // Тема до стилей и до первого кадра. Раньше её включал chrome.js в конце
 // страницы, и первый кадр каждого перехода был тёмным: разметка объявляет
@@ -10,6 +10,7 @@
 try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElement.dataset.tanba = 'light'; } catch (e) { }
 </script>
 <link rel="stylesheet" href="tanba.css">
+<!-- Панель отбора и выбор тега общие с библиотекой, стили лежат там -->
 <link rel="stylesheet" href="library.css">
 </head>
 <body>
@@ -18,26 +19,22 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
-<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
-<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
-<symbol id="i-lib" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
-<symbol id="i-crumb" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
-<symbol id="i-star" viewBox="0 0 24 24"><path d="M11.52 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.1 2.1 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.1 2.1 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.1 2.1 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.1 2.1 0 0 0-.61-1.88L2.16 9.79a.53.53 0 0 1 .29-.9l5.17-.76a2.1 2.1 0 0 0 1.6-1.16Z"/></symbol>
-<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></symbol>
-<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
-<symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-<symbol id="i-cog" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
-<symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
-<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
-<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
-<symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
-<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
 <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3v18l14-9Z"/></symbol>
 <symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-cog" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+<symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24"><rect width="18" height="16" x="3" y="4" rx="2"/><path d="M15 4v16"/><path d="M18 9h-1M18 12h-1M18 15h-1"/></symbol>
 <!-- Значки размера плиток. Раньше их объявляла шапка, но шапка теперь живёт
      в оболочке, а переключатель остался здесь: символ и ссылка на него должны
@@ -47,11 +44,11 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 <symbol id="v-l" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
 </defs></svg>
 
-<div class="app lib cmds">
+<div class="app cmds">
 
 
-  <!-- Панель отбора. Порядок как в проводнике: слева органы управления,
-       посередине то, где ты сейчас и что отобрано, справа поиск по имени. -->
+  <!-- Панель отбора, та же что в библиотеке. Здесь она просеивает приём:
+       на сотне файлов найти нужный глазами уже не выходит. -->
   <div class="pick">
     <button class="mini mini-ghost mini-icon" id="reset" title="Сбросить отбор"
             data-i18n-title="common.pick.reset">
@@ -67,9 +64,6 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
       <button data-mode="or" title="Файлу хватит любого из выбранных тегов"
               data-i18n="common.pick.mode.any" data-i18n-title="common.pick.mode.any.hint">ИЛИ</button>
     </div>
-
-    <!-- Область отбора: путь по каталогам, снятые теги и форматы вместе.
-         Раньше называлась «теги», но тегов тут давно не только. -->
     <div class="pick-scope" id="scope"></div>
 
     <label class="find">
@@ -80,7 +74,7 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 
   <!-- Командная панель, порядок снят с проводника: слева действия над
        выделенным, затем вид, справа у самого края панель сведений.
-       Разметка повторяется в index.html, как повторяется и панель отбора
+       Разметка повторяется в library.html, как повторяется и панель отбора
        над ней: у экранов общие стили, но свои страницы. -->
   <div class="cmd">
     <button class="cbtn" data-act="open" title="Открыть" data-i18n-title="common.cmd.open">
@@ -108,17 +102,29 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
   </div>
 
   <div class="main" id="main">
-    <aside class="side" id="panel"></aside>
-    <section class="files" id="results"></section>
+    <aside class="side" id="side"></aside>
+    <section class="files" id="files"></section>
     <aside class="info" id="info"></aside>
   </div>
 
-  <footer class="status">
-    <span id="stCount"></span>
-    <span id="stSel"></span>
+  <footer class="bar">
+    <button class="btn btn-primary" id="fileBtn">
+      <svg class="ic"><use href="#i-check"></use></svg>
+      <span data-i18n="triage.file">В библиотеку</span> <span class="count" id="fileN">0</span>
+    </button>
+    <!-- Кнопки «Отложить» здесь больше нет намеренно. Она уносила файлы
+         без тегов в хранилище, обещая «Неразобранное», которого в программе
+         не существует: найти такой файл потом было нечем, кроме имени.
+         Не размечен значит лежит в приёме и ждёт, приём для того и есть. -->
+    <span class="dim" id="pending"></span>
     <span class="grow"></span>
-    <span class="mono" id="stBytes"></span>
-    <span class="mono dim" id="stRoot"></span>
+    <span class="dim" id="hint"></span>
+    <span class="dim mono" id="statFiles"></span>
+    <span class="dim mono" id="statSize"></span>
+    <button class="btn btn-ghost btn-icon" id="rescan" title="Пересканировать приём"
+            data-i18n-title="triage.rescan">
+      <svg class="ic"><use href="#i-refresh"></use></svg>
+    </button>
   </footer>
 
 </div>
@@ -129,17 +135,15 @@ try { if (localStorage.getItem('tanba-theme') === 'light') document.documentElem
 </div>
 
 <div class="toast" id="toast"></div>
-
 <div class="drop" id="drop"><div class="zone" data-i18n="common.drop.zone">Отпусти, заберу в разбор</div></div>
 
 <!-- Словарь идёт первым: механика языка читает его сразу, а разметку
-     заполняет уже library.js, когда страница разобрана. -->
+     заполняет уже app.js, когда страница разобрана. -->
 <script src="strings.js"></script>
 <script src="i18n.js"></script>
 <script src="bridge.js"></script>
 <script src="ftype.js"></script>
-<script src="library.js"></script>
-<script src="actions.js"></script>
+<script src="app.js"></script>
 <script src="modal.js"></script>
 <script src="cmdbar.js"></script>
 <script src="picking.js"></script>
